@@ -44,7 +44,8 @@ class FunctionalEnvironmentReset(reaf_environment.EnvironmentReset):
 
   For on_step(), subclass and override.
 
-  Example:
+  Example::
+
     def randomize_friction(dc, range):
       model = dc.simulation_device.model
       ...

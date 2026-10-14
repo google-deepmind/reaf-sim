@@ -38,7 +38,7 @@ _orig_mock_call = autodoc_mock._MockObject.__call__  # pylint: disable=protected
 
 
 def _mock_getattr(self, key: str):
-  if key in ("ResetOptions", "Action", "Observation"):
+  if key in ("ResetOptions", "Action", "Observation", "PolicyDataType"):
     return typing.TypeVar(key)
   return _orig_mock_getattr(self, key)
 
@@ -61,6 +61,7 @@ autodoc_mock_imports = [
     "mujoco_warp",
     "numpy",
     "reaf.core",
+    "reaf.simulation.viewer",
     "torch",
     "tree",
     "warp",

@@ -45,6 +45,7 @@ class EnvironmentReset(abc.ABC, Generic[gdmr_env.ResetOptions]):
   """Reset hooks for environment lifecycle with privileged sim access.
 
   Hooks:
+
   - on_startup(): Called once at startup (e.g. domain randomization)
   - on_reset(): Called on every reset (e.g. initialize new episode targets)
   - on_step(): Called on every step (e.g. goal resampling, curriculum)

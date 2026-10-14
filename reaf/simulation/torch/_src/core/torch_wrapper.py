@@ -188,10 +188,12 @@ class TorchTensor(NoSetAttr):
   fields.
 
   Tracked operation on TorchTensor:
+
   - Subscript assignment: `model.<field>[idx] = val` via `__setitem__`
   - Bound attribute assignment: `bound.set("field", val)` (uses `__setitem__`)
 
   Write operations that bypass the wrapper are NOT tracked:
+
   - Direct writes to underlying storage: `t._tensor[idx] = val` or
     `t._array[idx] = val`
   - In-place ops on views from `t[idx]`, e.g. `t[idx] += val`
