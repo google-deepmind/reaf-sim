@@ -850,7 +850,7 @@ wheels = [
 
 [[package]]
 name = "mujoco"
-version = "3.15.1.dev993598688"
+version = "3.16.0.dev998671055"
 source = { registry = "https://py.mujoco.org/" }
 dependencies = [
     { name = "absl-py" },
@@ -861,14 +861,14 @@ dependencies = [
     { name = "websockets" },
 ]
 wheels = [
-    { url = "https://py.mujoco.org/mujoco/mujoco-3.15.1.dev993598688-cp312-cp312-macosx_11_0_universal2.whl", hash = "sha256:03c420752ad2dcf0edeb317f6d5f52c99e80c445450ab69818898b4a513c757e" },
-    { url = "https://py.mujoco.org/mujoco/mujoco-3.15.1.dev993598688-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:fddf0952d5c12c26c5b1f53ce7337b2d0b0bcbf86e6208550d181ec068023dbb" },
-    { url = "https://py.mujoco.org/mujoco/mujoco-3.15.1.dev993598688-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:559763138ef9e7ecd30e65ad843716fac579938e76b9916d747531e6d7ca18c6" },
-    { url = "https://py.mujoco.org/mujoco/mujoco-3.15.1.dev993598688-cp312-cp312-win_amd64.whl", hash = "sha256:ec8e508fa6f361eb51991ef0e82a291698c0bdfceb78ece21fbd2f8153d9b2d2" },
-    { url = "https://py.mujoco.org/mujoco/mujoco-3.15.1.dev993598688-cp313-cp313-macosx_11_0_universal2.whl", hash = "sha256:f9f170a92c015a8372357d8da70df0c5bdba0e554f138cc3d6fdcfe118572692" },
-    { url = "https://py.mujoco.org/mujoco/mujoco-3.15.1.dev993598688-cp313-cp313-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:6d3198ffe85f6a8e97a1c3d150b2fc67fe678df7b76fb0ae1bbe5e205acf427c" },
-    { url = "https://py.mujoco.org/mujoco/mujoco-3.15.1.dev993598688-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:338d94699e46e8afdb5819cdfdd4c488311e90472d47b7864fb76ba7be5847e0" },
-    { url = "https://py.mujoco.org/mujoco/mujoco-3.15.1.dev993598688-cp313-cp313-win_amd64.whl", hash = "sha256:b329ea0eb3f4cca071ee044a7217b9825337a2f5341fc869379268d8580fefc4" },
+    { url = "https://py.mujoco.org/mujoco/mujoco-3.16.0.dev998671055-cp312-cp312-macosx_11_0_universal2.whl", hash = "sha256:2e11636031dd45c5292c1ba34fb591dc7a1530daf670527c707e13ffabbd6a41" },
+    { url = "https://py.mujoco.org/mujoco/mujoco-3.16.0.dev998671055-cp312-cp312-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:e78192e29ca33692e91dc95146fa4e4090297587ed919d67fb6298e41af8a6cb" },
+    { url = "https://py.mujoco.org/mujoco/mujoco-3.16.0.dev998671055-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:443fc9d712166511cf324275ecf5344433a7d5b93305bc2406ce40b748c56214" },
+    { url = "https://py.mujoco.org/mujoco/mujoco-3.16.0.dev998671055-cp312-cp312-win_amd64.whl", hash = "sha256:e0c4bfc3099b7646c4633ffbced5c91d457c46f41a16df5bd5519ef2eb5b48dd" },
+    { url = "https://py.mujoco.org/mujoco/mujoco-3.16.0.dev998671055-cp313-cp313-macosx_11_0_universal2.whl", hash = "sha256:0f61cd9cafd72e16010ef6dbba3831710a25feb20fcc5f487712120d3e792e6d" },
+    { url = "https://py.mujoco.org/mujoco/mujoco-3.16.0.dev998671055-cp313-cp313-manylinux_2_27_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:b1b44065718193b0e2faceedcb0a945cca2c1ae712dbefd8abea83d9d2446680" },
+    { url = "https://py.mujoco.org/mujoco/mujoco-3.16.0.dev998671055-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:bebfe7b2553114552b198b5b29f36f3d812cdde7c3a93dca130bb4090ec82850" },
+    { url = "https://py.mujoco.org/mujoco/mujoco-3.16.0.dev998671055-cp313-cp313-win_amd64.whl", hash = "sha256:74ff88cccd34ba9640de8e77a3de79629e4a8126e230871331999454b92b4c29" },
 ]
 
 [package.optional-dependencies]
@@ -887,8 +887,8 @@ sysid = [
 
 [[package]]
 name = "mujoco-warp"
-version = "3.13.0"
-source = { git = "https://github.com/google-deepmind/mujoco_warp?branch=main#63c21c2c4147995d6e221e6e2586ba12fcf39592" }
+version = "3.15.0"
+source = { git = "https://github.com/google-deepmind/mujoco_warp?branch=deepmind#ff0dfb052291a560dc093fbd89a4d7fa6337cdc0" }
 dependencies = [
     { name = "absl-py" },
     { name = "etils", extra = ["epath"] },
@@ -1668,7 +1668,7 @@ requires-dist = [
     { name = "gdm-robotics", git = "https://github.com/google-deepmind/gdm_robotics?branch=main" },
     { name = "immutabledict" },
     { name = "mujoco", extras = ["sysid"], specifier = ">=3.4.0", index = "https://py.mujoco.org/" },
-    { name = "mujoco-warp", git = "https://github.com/google-deepmind/mujoco_warp?branch=main" },
+    { name = "mujoco-warp", git = "https://github.com/google-deepmind/mujoco_warp?branch=deepmind" },
     { name = "numpy" },
     { name = "reaf", git = "https://github.com/google-deepmind/reaf?branch=main" },
     { name = "torch", specifier = ">=2.6.0" },

@@ -87,7 +87,7 @@ url = "https://py.mujoco.org/"
 explicit = true
 
 [tool.uv.sources]
-mujoco_warp = { git = "https://github.com/google-deepmind/mujoco_warp", branch = "main" }
+mujoco_warp = { git = "https://github.com/google-deepmind/mujoco_warp", branch = "deepmind" }
 reaf = { git = "https://github.com/google-deepmind/reaf", branch = "main" }
 gdm_robotics = { git = "https://github.com/google-deepmind/gdm_robotics", branch = "main" }
 mujoco = { index = "mujoco" }
