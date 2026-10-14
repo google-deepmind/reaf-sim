@@ -1,0 +1,60 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+.venv/
+.venv-no-extras/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE and editors
+.claude/
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Generated machine-local config & MuJoCo logs
+/.local/
+MUJOCO_LOG.TXT
+MUJOCO_LOG.txt
+
+# Benchmark logs and generated nightly data
+benchmarks/nightly/
+/tmp/playground_benchmark_logs/
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+htmlcov/
