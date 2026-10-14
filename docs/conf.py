@@ -192,7 +192,7 @@ html_theme_options = {
     "github_url": "https://github.com/google-deepmind/reaf-sim",
 }
 
-html_favicon = "_static/favicons/favicon-32x32.png"
+html_favicon = "_static/favicons/favicon.svg"
 
 html_last_updated_fmt = "%b %d, %Y"
 html_show_sphinx = False
