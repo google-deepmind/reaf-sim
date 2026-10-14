@@ -1,5 +1,6 @@
 # `reaf-sim`
 
+[![CI](https://github.com/google-deepmind/reaf-sim/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/google-deepmind/reaf-sim/actions/workflows/ci.yml?query=branch%3Amain)
 [![Documentation Status](https://readthedocs.org/projects/reaf-sim/badge/?version=latest)](https://reaf-sim.readthedocs.io/en/latest/?badge=latest)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
