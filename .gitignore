@@ -50,9 +50,8 @@ venv.bak/
 MUJOCO_LOG.TXT
 MUJOCO_LOG.txt
 
-# Benchmark logs and generated nightly data
-benchmarks/nightly/
-/tmp/playground_benchmark_logs/
+# Documentation
+docs/_build/
 
 # Testing and coverage
 .pytest_cache/
