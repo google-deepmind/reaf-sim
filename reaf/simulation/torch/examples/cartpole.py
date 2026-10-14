@@ -136,7 +136,7 @@ def create_cartpole_env(
 
 
 def main():
-  nworld = 16
+  nworld = 16 if torch.cuda.is_available() else 1
   xpu_device = "cuda:0" if torch.cuda.is_available() else "cpu"
   impl = "warp" if torch.cuda.is_available() else "cpp"
 

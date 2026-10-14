@@ -24,16 +24,16 @@ Clone the repository, sync development dependencies with `uv <https://docs.astra
 .. code-block:: bash
 
     git clone https://github.com/google-deepmind/reaf-sim.git && cd reaf-sim
-    uv sync --group dev  # or `make install-cpu` for CPU-only
-    uv run pre-commit install
+    make install  # or `make install-cpu` for CPU-only
+    uv run --no-sync pre-commit install
 
 Before opening a pull request, run `pre-commit` (which formats with `pyink`, `isort`, and `docstrfmt`, checks copyright
 headers, and type-checks with `pyrefly`) and run the test suite:
 
 .. code-block:: bash
 
-    uv run pre-commit run --all-files  # Format and type-check (or `make format` / `make typecheck`)
-    make test                          # Run pytest in parallel
+    uv run --no-sync pre-commit run --all-files  # Format and type-check (or `make format` / `make typecheck`)
+    make test                                    # Run pytest in parallel
 
 Code Reviews
 ------------

@@ -18,8 +18,8 @@ Clone `reaf-sim` from GitHub and install with [`uv`](https://docs.astral.sh/uv/)
 
 ```bash
 git clone https://github.com/google-deepmind/reaf-sim.git && cd reaf-sim
-uv sync  # install dependencies (use --extra cpu for CPU only)
-uv run pytest -n 8  # run all tests, verify everything works
+make install  # install dependencies (use `make install-cpu` for CPU only)
+make test     # run all tests, verify everything works
 ```
 
 ### Cartpole Example
