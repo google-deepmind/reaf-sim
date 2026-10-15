@@ -128,6 +128,11 @@ class FunctionalObservationAdapter(
 
         # Compute spec shape (accounting for history expansion).
         base_shape = term.output_shape
+        if base_shape is None:
+          raise ValueError(
+              f"output_shape is required for observation term '{name}' in"
+              f" group '{group_name}'."
+          )
         if history_length > 0:
           if nworld is None:
             raise ValueError(
@@ -136,20 +141,20 @@ class FunctionalObservationAdapter(
             )
           self._history_lengths[group_name][name] = history_length
           self._history_buffers[group_name][name] = torch.zeros(
-              (nworld, history_length, *base_shape),  # pyrefly: ignore[not-iterable]
+              (nworld, history_length, *base_shape),
               dtype=torch_dtype,
               device=self._xpu_device,
           )
           # If history_length > 0, we stack frames along channels and
           # preserve 2D spatial shape so CNNModel can initialize Conv2D layers
           # instead of flattening into a 1D vector.
-          if base_shape is not None and len(base_shape) == 3:
+          if len(base_shape) == 3:
             adjusted_shape = (
                 (1 + history_length) * base_shape[0],
                 *base_shape[1:],
             )
           else:
-            base_size = int(np.prod(base_shape))  # pyrefly: ignore[no-matching-overload]
+            base_size = int(np.prod(base_shape))
             adjusted_shape = ((1 + history_length) * base_size,)
           has_history = True
         else:
@@ -175,11 +180,6 @@ class FunctionalObservationAdapter(
               raise ValueError(
                   "nworld must be provided when using 'bias'"
                   f" (term '{name}' in group '{group_name}')"
-              )
-            if base_shape is None:
-              raise ValueError(
-                  "output_shape must be specified when using 'bias' (term"
-                  f" '{name}')"
               )
             bias_sampler = noise_module.build_sampler(
                 bias_config, self._xpu_device
@@ -245,7 +245,10 @@ class FunctionalObservationAdapter(
     return set()
 
   def observation_spec(self) -> Mapping[str, specs.Array]:
-    return self._specs
+    return {
+        k: v.replace(shape=(self._nworld,) + v.shape)
+        for k, v in self._specs.items()
+    }
 
   def observations_from_features(
       self, features: Mapping[str, torch.Tensor]

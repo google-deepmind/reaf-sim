@@ -181,6 +181,12 @@ class MakeDeploymentConfigTest(absltest.TestCase):
             rewards={"reach": term},
             reward_provider=config.Component(component_type=object),
             terminations=[term],
+            feature_producers={
+                "policy_producer": config.Component(component_type=object),
+                "privileged_producer": (
+                    config.Component(component_type=object).mark_privileged()
+                ),
+            },
         ),
         observation_adapter={
             "policy": config.TermGroup(
@@ -200,6 +206,9 @@ class MakeDeploymentConfigTest(absltest.TestCase):
     self.assertEmpty(deploy_config.task_layer.rewards)
     self.assertIsNone(deploy_config.task_layer.reward_provider)
     self.assertEmpty(deploy_config.task_layer.terminations)
+    self.assertEqual(
+        list(deploy_config.task_layer.feature_producers), ["policy_producer"]
+    )
     self.assertEqual(deploy_config.sim.nworld, 1)
 
     # The resetters stage the scene in simulation and are ignored on hardware,
@@ -220,6 +229,10 @@ class MakeDeploymentConfigTest(absltest.TestCase):
 
     self.assertTrue(deploy_config.nan_termination)
     self.assertNotEmpty(env_config.task_layer.rewards)
+    self.assertEqual(
+        list(env_config.task_layer.feature_producers),
+        ["policy_producer", "privileged_producer"],
+    )
     self.assertEqual(env_config.sim.nworld, 4096)
     self.assertIsInstance(env_config.observation_adapter, dict)
     self.assertTrue(env_config.observation_adapter["policy"].enable_noise)

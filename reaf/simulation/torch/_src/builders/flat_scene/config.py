@@ -241,6 +241,9 @@ class Component(Generic[_P_spec]):
   attachment_site: str | None = None
   attachment_pos: tuple[float, float, float] | None = None
   attachment_quat: tuple[float, float, float, float] | None = None
+  # Whether this component is simulation/learner-only and should be pruned when
+  # building a deployment config via `make_deployment_config`.
+  privileged: bool = False
 
   @overload
   def __init__(
@@ -304,6 +307,7 @@ class Component(Generic[_P_spec]):
     self.attachment_site = attachment_site
     self.attachment_pos = attachment_pos
     self.attachment_quat = attachment_quat
+    self.privileged = False
 
   def configure_spec(
       self, *args: _P_spec.args, **build_kwargs: _P_spec.kwargs
@@ -337,6 +341,11 @@ class Component(Generic[_P_spec]):
       self.attachment_pos = pos
     if quat is not None:
       self.attachment_quat = quat
+    return self
+
+  def mark_privileged(self) -> Self:
+    """Marks this component as privileged so it is pruned in deployment configs."""
+    self.privileged = True
     return self
 
 

@@ -118,15 +118,6 @@ class TaskLayer:
         name = name_attr() if callable(name_attr) else name_attr
         self._components_by_name[name] = c
 
-  def _maybe_add_batch_dim(self, spec: specs.Array) -> specs.Array:
-    should_batch = self._nworld > 1
-    if not should_batch:
-      return spec
-    is_batched = len(spec.shape) >= 1 and spec.shape[0] == self._nworld
-    if is_batched:
-      return spec
-    return spec.replace(shape=(self._nworld,) + spec.shape)
-
   def commands_spec(
       self,
       device_layer_commands_spec: (
@@ -134,7 +125,7 @@ class TaskLayer:
       ) = None,
   ) -> Mapping[str, gdmr_types.AnyArraySpec]:
     """Returns the commands spec exposed by the task layer."""
-    spec: Mapping[str, gdmr_types.AnyArraySpec] = dict(
+    spec: dict[str, gdmr_types.AnyArraySpec] = dict(
         device_layer_commands_spec or {}
     )
     for processor in reversed(self._commands_processors):
@@ -144,20 +135,21 @@ class TaskLayer:
           for key, value in spec.items()
           if key not in processor_produced_keys
       }
-      spec.update(processor.consumed_commands_spec())
+      for key, proc_spec in processor.consumed_commands_spec().items():
+        spec[key] = proc_spec.replace(shape=(self._nworld,) + proc_spec.shape)
 
-    return {k: self._maybe_add_batch_dim(v) for k, v in spec.items()}  # pyrefly: ignore[bad-return]
+    return spec  # pyrefly: ignore[bad-return]
 
   def features_spec(
       self,
       device_layer_measurements_spec: Mapping[str, specs.Array] | None = None,
-  ) -> Mapping[str, specs.Array]:
+  ) -> dict[str, specs.Array]:
     """Returns the features spec exposed by the task layer."""
     spec = dict(device_layer_measurements_spec or {})
     for features_producer in self._features_producers:
-      spec.update(features_producer.produced_features_spec())
-
-    return {k: self._maybe_add_batch_dim(v) for k, v in spec.items()}
+      for k, v in features_producer.produced_features_spec().items():
+        spec[k] = v.replace(shape=(self._nworld,) + v.shape)
+    return spec
 
   def validate_spec(
       self,

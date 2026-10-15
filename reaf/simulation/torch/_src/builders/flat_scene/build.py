@@ -167,6 +167,19 @@ def make_deployment_config(
     term_group.enable_noise = False
     observation_adapter[group] = term_group
 
+  # TODO(b/572064329): Assume `task_layer.feature_producers` is always a `dict`
+  # once external callers migrate off `list[Component]`.
+  if isinstance(task_layer.feature_producers, Mapping):
+    task_layer.feature_producers = {
+        k: c
+        for k, c in task_layer.feature_producers.items()
+        if not c.privileged
+    }
+  else:
+    task_layer.feature_producers = [
+        c for c in task_layer.feature_producers if not c.privileged
+    ]
+
   sim = copy.deepcopy(env_config.sim)
   sim.nworld = 1
 

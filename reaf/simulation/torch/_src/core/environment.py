@@ -247,9 +247,7 @@ class Environment(core_environment.Environment):
         discount=_batch_spec_tree(
             self._task_layer.discount_spec(), self._nworld
         ),
-        observation=_batch_spec_tree(
-            self._observation_space_adapter.observation_spec(), self._nworld
-        ),
+        observation=self._observation_space_adapter.observation_spec(),
     )
 
     read_only_zeros_like_spec_p = functools.partial(

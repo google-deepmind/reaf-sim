@@ -60,8 +60,8 @@ class FunctionalObservationAdapterTest(absltest.TestCase):
     )
 
     spec = provider.observation_spec()
-    self.assertEqual(spec["policy"].shape, (5,))  # 3 + 2
-    self.assertEqual(spec["critic"].shape, (5,))
+    self.assertEqual(spec["policy"].shape, (1, 5))  # 3 + 2
+    self.assertEqual(spec["critic"].shape, (1, 5))
 
     features = {
         "a": torch.zeros(4, 3),
@@ -204,7 +204,7 @@ class FunctionalObservationAdapterTest(absltest.TestCase):
 
     # Spec should be (1 + 2) * 3 = 9.
     spec = provider.observation_spec()
-    self.assertEqual(spec["obs"].shape, (9,))
+    self.assertEqual(spec["obs"].shape, (nworld, 9))
 
     # Step 0: history filled with current value.
     features = {"a": torch.ones(nworld, 3)}
@@ -240,7 +240,7 @@ class FunctionalObservationAdapterTest(absltest.TestCase):
 
     # Spec should be (1 + 2) * 3 = 9 channels -> (9, 32, 32).
     spec = provider.observation_spec()
-    self.assertEqual(spec["camera"].shape, (9, 32, 32))
+    self.assertEqual(spec["camera"].shape, (nworld, 9, 32, 32))
 
     # Step 0: history filled with current value (all 9 channels are 1.0).
     features = {"rgb": torch.ones(nworld, 3, 32, 32)}

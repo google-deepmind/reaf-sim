@@ -227,8 +227,8 @@ class PendulumObservationAdapter(
 
   def observation_spec(self) -> gdmr_types.ObservationSpec:  # pyrefly: ignore[invalid-type-var]
     return {
-        "joint_pos": specs.Array(shape=(1,), dtype=np.float32),
-        "time": specs.Array(shape=(1,), dtype=np.float32),
+        "joint_pos": specs.Array(shape=(self._nworld, 1), dtype=np.float32),
+        "time": specs.Array(shape=(self._nworld, 1), dtype=np.float32),
     }
 
   def task_features_keys(self) -> set[str]:
