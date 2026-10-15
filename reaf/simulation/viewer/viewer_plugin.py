@@ -20,6 +20,7 @@ import logging
 from typing import Any
 
 from mujoco.experimental.studio import messages
+from mujoco.experimental.studio import plugin
 from mujoco.experimental.studio import sim
 from mujoco.experimental.studio import viewer_app
 import numpy as np
@@ -220,7 +221,7 @@ def _reward_values(reward: Any) -> dict[str, float]:
   return values
 
 
-class ReafViewerPlugin:
+class ReafViewerPlugin(plugin.ViewerPlugin):
   """Viewer-side REAF plugin.
 
   Derives the episode count, step count, and reward plot from the stream of

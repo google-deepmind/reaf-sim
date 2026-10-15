@@ -24,6 +24,7 @@ from gdm_robotics.interfaces import policy as gdmr_policy
 from gdm_robotics.interfaces import types as gdmr_types
 import mujoco
 from mujoco.experimental.studio import launch_web
+from mujoco.experimental.studio import plugin
 from mujoco.experimental.studio import viewer_app
 from mujoco.experimental.studio import viewer_protocol
 from reaf.simulation.torch import environment as environment_module
@@ -74,8 +75,7 @@ def launch(
     http_port: int = 0,
     auto_reset: bool = True,
     initial_instruction: str | None = None,
-    viewer_plugins: list[Any] | None = None,
-    sim_plugins: list[Any] | None = None,
+    plugins: Iterable[plugin.Plugin] | None = None,
 ) -> None:
   """Launches a viewer for a reaf-sim environment."""
   if simulator is None:
@@ -146,8 +146,11 @@ def launch(
       config,
       model=model,
       data=data,
-      viewer_plugins=[viewer_app.ViewerApp(), reaf_viewer_plugin]
-      + list(viewer_plugins or []),
-      sim_plugins=[torch_sim_plugin] + list(sim_plugins or []),
+      plugins=[
+          viewer_app.ViewerApp(),
+          reaf_viewer_plugin,
+          torch_sim_plugin,
+          *(plugins or ()),
+      ],
   )
   _module_logger.info('Exited viewer.')

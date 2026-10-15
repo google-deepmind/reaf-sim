@@ -20,8 +20,8 @@ from typing import Protocol, runtime_checkable
 import dm_env
 import mujoco
 from mujoco.experimental.studio import messages
+from mujoco.experimental.studio import plugin
 from mujoco.experimental.studio import sim
-from mujoco.experimental.studio import viewer_handle
 import numpy as np
 from reaf.simulation.viewer import messages as reaf_messages
 
@@ -74,7 +74,7 @@ class SimBackend(Protocol):
     ...
 
 
-class SimPlugin:
+class SimPlugin(plugin.SimPlugin):
   """Simulation-side REAF plugin that steps a SimBackend on StepEvent.
 
   The backend owns the simulation state; the CPU ``MjData`` handed to plugins
@@ -101,7 +101,6 @@ class SimPlugin:
     self._paused = False
     self._single_step = False
     self._reset_requested = False
-    self._handle: viewer_handle.ViewerHandle | None = None
     # The model the backend was built for, and whether it must be restored
     # after a model change (e.g. a file dropped onto the viewer).
     self._model: mujoco.MjModel | None = None
@@ -116,11 +115,6 @@ class SimPlugin:
         self._handle.send_to_viewer(
             messages.RequestPauseEvent(pause_state=pause_state)
         )
-
-  @messages.handler
-  def on_sim_init(self, event: viewer_handle.SimInitEvent) -> None:
-    """Caches the ViewerHandle."""
-    self._handle = event.handle
 
   @messages.handler
   def on_post_model(self, event: messages.PostModelEvent) -> None:
