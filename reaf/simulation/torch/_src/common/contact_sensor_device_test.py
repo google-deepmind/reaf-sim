@@ -76,7 +76,6 @@ class ContactSensorDeviceTest(parameterized.TestCase):
     )
     dev.configure_spec(
         spec,
-        prefix="contact",
         objtype="body",
         objname="left_box",
         reftype="geom",
@@ -94,7 +93,6 @@ class ContactSensorDeviceTest(parameterized.TestCase):
     )
     dev.configure_spec(
         spec,
-        prefix="foot",
         objtype="body",
         objname=("left_box", "right_box"),
         reftype="geom",
@@ -112,7 +110,6 @@ class ContactSensorDeviceTest(parameterized.TestCase):
     )
     dev.configure_spec(
         spec,
-        prefix="box",
         objtype="body",
         objname=".*_box",  # Regex matching both boxes
     )
@@ -155,7 +152,6 @@ class ContactSensorDeviceTest(parameterized.TestCase):
     )
     dev.configure_spec(
         spec,
-        prefix="contact",
         objtype="body",
         objname=("left_box", "right_box"),
         reftype="geom",
@@ -207,7 +203,6 @@ class ContactSensorDeviceTest(parameterized.TestCase):
     )
     dev.configure_spec(
         spec,
-        prefix="contact",
         objtype="body",
         objname=("left_box", "right_box"),
         reftype="geom",

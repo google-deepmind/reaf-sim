@@ -215,7 +215,6 @@ class _Configurable(Protocol[_P_spec]):
   def configure_spec(
       self,
       spec: mujoco.MjSpec,
-      prefix: str,
       *args: _P_spec.args,
       **kwargs: _P_spec.kwargs,
   ) -> mujoco.MjSpec:
@@ -233,8 +232,11 @@ class Component(Generic[_P_spec]):
   # Parameters sent to object constructor.
   runtime_params: dict[str, Any] = field(default_factory=dict)
 
-  # Optional scene spec and attachment info.
+  # Optional scene spec and attachment info; set via `attach(...)`.
   spec_fn: Callable[[], mujoco.MjSpec] | None = None
+  # TODO(b/572064329): Make `attachment_prefix` non-empty whenever `spec_fn` is
+  # set once legacy callers attaching specs with `attachment_prefix=""` migrate
+  # to `attach(...)`, which already rejects empty prefixes.
   attachment_prefix: str = ""
   attachment_site: str | None = None
   attachment_pos: tuple[float, float, float] | None = None
@@ -314,18 +316,21 @@ class Component(Generic[_P_spec]):
 
   def attach(
       self,
-      spec_fn: Callable[[], mujoco.MjSpec] | None = None,
+      spec_fn: Callable[[], mujoco.MjSpec],
       *,
-      prefix: str | None = None,
+      prefix: str,
       site: str | None = None,
       pos: tuple[float, float, float] | None = None,
       quat: tuple[float, float, float, float] | None = None,
   ) -> Self:
     """Configures how this device's MjSpec attaches to the base scene."""
-    if spec_fn is not None:
-      self.spec_fn = spec_fn
-    if prefix is not None:
-      self.attachment_prefix = prefix
+    if not prefix:
+      raise ValueError(
+          f"{self.component_type.__name__}: attaching a spec requires a"
+          " non-empty prefix."
+      )
+    self.spec_fn = spec_fn
+    self.attachment_prefix = prefix
     if site is not None:
       self.attachment_site = site
     if pos is not None:

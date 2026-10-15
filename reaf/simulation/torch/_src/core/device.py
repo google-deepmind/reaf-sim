@@ -25,15 +25,11 @@ import torch
 class Device(abc.ABC):
   """A REAF Device representing a simulation participant."""
 
-  _attachment_prefix: str = ""
-
   def configure_spec(
       self,
       spec: mujoco.MjSpec,
-      prefix: str,
   ) -> mujoco.MjSpec:
     """Validate/configure the spec for this device."""
-    self._attachment_prefix = prefix
     return spec
 
   def initialize(self, simulator: simulator_module.Simulator) -> None:

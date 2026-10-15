@@ -44,7 +44,6 @@ class ActuatorDevice(device.Device):
   def configure_spec(  # pyrefly: ignore[bad-override]
       self,
       spec: mujoco.MjSpec,
-      prefix: str,
       *,
       # TODO(b/564469814): Remove `targets` and `transmission` from
       # `configure_spec` once legacy `build_params` callers migrate to passing
@@ -67,7 +66,6 @@ class ActuatorDevice(device.Device):
 
     Args:
       spec: The MjSpec to modify.
-      prefix: Entity prefix in the scene (e.g., "robot/").
       targets: Names of joints/tendons/sites to actuate. Defaults to targets
         configured at initialization.
       mode: Control mode - "position", "velocity", "motor", or mujoco.mjtGain.*.
@@ -88,7 +86,7 @@ class ActuatorDevice(device.Device):
         exist in the MJCF. This preserves the original gainprm, biasprm, gear,
         and other parameters defined in the XML.
     """
-    spec = super().configure_spec(spec, prefix)
+    spec = super().configure_spec(spec)
     if targets is None:
       targets = self._target_names
     if transmission is None:
@@ -96,22 +94,20 @@ class ActuatorDevice(device.Device):
     trntype = _TRNTYPE_MAP[transmission]
 
     for target_name in targets:
-      full_name = f"{prefix}{target_name}"
-
       # Find or create actuator
-      act = spec.actuator(full_name)
+      act = spec.actuator(target_name)
       # Fallback manual search because of MuJoCo MjSpec.actuator bug.
       # TODO(btaba): Fix the bug upstream and remove this fallback.
       # see the test case test_configure_spec_existing_velocity_actuator in
       # third_party/py/reaf/simulation/torch/common/actuator_entity_test.py
       if act is None:
         for a in spec.actuators:
-          if a.name == full_name:
+          if a.name == target_name:
             act = a
             break
 
       if act is None:
-        act = spec.add_actuator(name=full_name, target=full_name)
+        act = spec.add_actuator(name=target_name, target=target_name)
       elif use_existing:
         continue  # Keep actuator as configured in MJCF
 
@@ -121,17 +117,17 @@ class ActuatorDevice(device.Device):
       gr = gear[target_name] if isinstance(gear, dict) else gear
 
       if trntype == mujoco.mjtTrn.mjTRN_JOINT:
-        target_obj = spec.joint(full_name)
+        target_obj = spec.joint(target_name)
         if target_obj is None:
-          raise ValueError(f"Joint not found: {full_name}")
+          raise ValueError(f"Joint not found: {target_name}")
       elif trntype == mujoco.mjtTrn.mjTRN_TENDON:
-        target_obj = spec.tendon(full_name)
+        target_obj = spec.tendon(target_name)
         if target_obj is None:
-          raise ValueError(f"Tendon not found: {full_name}")
+          raise ValueError(f"Tendon not found: {target_name}")
       elif trntype == mujoco.mjtTrn.mjTRN_SITE:
-        target_obj = spec.site(full_name)
+        target_obj = spec.site(target_name)
         if target_obj is None:
-          raise ValueError(f"Site not found: {full_name}")
+          raise ValueError(f"Site not found: {target_name}")
         target_obj = None  # Set to None so we skip armature/frictionloss below
       else:
         raise ValueError(f"Unknown transmission type: {transmission}")
@@ -288,8 +284,7 @@ class ActuatorDevice(device.Device):
     self._joints = []
 
     for target_name in self._target_names:
-      full_name = f"{self._attachment_prefix}{target_name}"
-      act = mj_model.actuator(full_name)
+      act = mj_model.actuator(target_name)
       actuator_ids.append(act.id)
 
       if self._transmission == "joint":
@@ -300,7 +295,7 @@ class ActuatorDevice(device.Device):
         joint_name = mj_model.joint(joint_id).name
         self._joints.append(mj_spec.joint(joint_name))
       elif self._transmission == "tendon":
-        ten = mj_model.tendon(full_name)
+        ten = mj_model.tendon(target_name)
         tendon_ids.append(ten.id)
 
     # Store as tensors on the entity's device

@@ -42,8 +42,8 @@ class FreeDevice(device.Device):
 
     Args:
       name: Entity name for lookup.
-      body_name: Name of the body in the MjSpec (unprefixed).
-      joint_name: Name of the freejoint in the MjSpec (unprefixed).
+      body_name: Name of the body in the MjSpec.
+      joint_name: Name of the freejoint in the MjSpec.
       measurements: Which measurements to expose. Options: "xpos", "xquat",
         "joint_vel". Default: ["xpos", "xquat"].
       reference_site_name: Optional name of the site to measure relative to.
@@ -75,40 +75,37 @@ class FreeDevice(device.Device):
   def configure_spec(
       self,
       spec: mujoco.MjSpec,
-      prefix: str,
   ) -> mujoco.MjSpec:
-    spec = super().configure_spec(spec, prefix)
+    spec = super().configure_spec(spec)
     if self._reference_site_name is not None:
-      p = self._attachment_prefix
-      self._sensor_pos_name = f"{p}{self._name}_framepos"
+      self._sensor_pos_name = f"{self._name}_framepos"
       spec.add_sensor(
           name=self._sensor_pos_name,
           type=mujoco.mjtSensor.mjSENS_FRAMEPOS,
           objtype=mujoco.mjtObj.mjOBJ_BODY,
-          objname=f"{p}{self._body_name}",
+          objname=self._body_name,
           reftype=mujoco.mjtObj.mjOBJ_SITE,
-          refname=f"{p}{self._reference_site_name}",
+          refname=self._reference_site_name,
       )
-      self._sensor_quat_name = f"{p}{self._name}_framequat"
+      self._sensor_quat_name = f"{self._name}_framequat"
       spec.add_sensor(
           name=self._sensor_quat_name,
           type=mujoco.mjtSensor.mjSENS_FRAMEQUAT,
           objtype=mujoco.mjtObj.mjOBJ_BODY,
-          objname=f"{p}{self._body_name}",
+          objname=self._body_name,
           reftype=mujoco.mjtObj.mjOBJ_SITE,
-          refname=f"{p}{self._reference_site_name}",
+          refname=self._reference_site_name,
       )
     return spec
 
   def initialize(self, simulator: simulator_module.Simulator) -> None:
     """Resolve body/joint IDs from compiled model."""
     self._simulator = simulator
-    p = self._attachment_prefix
     data = simulator.data
     mj_model = simulator.mj_model
     self._data = data
-    self._body_id = mj_model.body(f"{p}{self._body_name}").id
-    self._joint_id = mj_model.joint(f"{p}{self._joint_name}").id
+    self._body_id = mj_model.body(self._body_name).id
+    self._joint_id = mj_model.joint(self._joint_name).id
     self._qpos_adr = mj_model.jnt_qposadr[self._joint_id]
     self._qvel_adr = mj_model.jnt_dofadr[self._joint_id]
 
@@ -210,7 +207,7 @@ class MocapDevice(device.Device):
 
     Args:
       name: Entity name for lookup.
-      body_name: Name of the mocap body in the MjSpec (unprefixed).
+      body_name: Name of the mocap body in the MjSpec.
       reference_site_name: Optional name of the site to measure relative to.
     """
     self._name = name
@@ -230,36 +227,34 @@ class MocapDevice(device.Device):
   def configure_spec(  # pyrefly: ignore[bad-override]
       self,
       spec: mujoco.MjSpec,
-      prefix: str,
       *,
       geom_group: int | None = None,
   ) -> mujoco.MjSpec:
     """Configures MjSpec sensors and optional geom group for the mocap body."""
-    spec = super().configure_spec(spec, prefix)
-    p = self._attachment_prefix
+    spec = super().configure_spec(spec)
     if geom_group is not None:
-      body = spec.body(f"{p}{self._body_name}")
+      body = spec.body(self._body_name)
       if body is not None:
         for g in body.geoms:
           g.group = geom_group
     if self._reference_site_name is not None:
-      self._sensor_pos_name = f"{p}{self._name}_mocap_framepos"
+      self._sensor_pos_name = f"{self._name}_mocap_framepos"
       spec.add_sensor(
           name=self._sensor_pos_name,
           type=mujoco.mjtSensor.mjSENS_FRAMEPOS,
           objtype=mujoco.mjtObj.mjOBJ_BODY,
-          objname=f"{p}{self._body_name}",
+          objname=self._body_name,
           reftype=mujoco.mjtObj.mjOBJ_SITE,
-          refname=f"{p}{self._reference_site_name}",
+          refname=self._reference_site_name,
       )
-      self._sensor_quat_name = f"{p}{self._name}_mocap_framequat"
+      self._sensor_quat_name = f"{self._name}_mocap_framequat"
       spec.add_sensor(
           name=self._sensor_quat_name,
           type=mujoco.mjtSensor.mjSENS_FRAMEQUAT,
           objtype=mujoco.mjtObj.mjOBJ_BODY,
-          objname=f"{p}{self._body_name}",
+          objname=self._body_name,
           reftype=mujoco.mjtObj.mjOBJ_SITE,
-          refname=f"{p}{self._reference_site_name}",
+          refname=self._reference_site_name,
       )
     return spec
 
@@ -271,9 +266,7 @@ class MocapDevice(device.Device):
     """Resolve mocap ID from compiled model."""
     self._simulator = simulator
     self._data = simulator.data
-    body_id = simulator.mj_model.body(
-        f"{self._attachment_prefix}{self._body_name}"
-    ).id
+    body_id = simulator.mj_model.body(self._body_name).id
     self._mocap_id = simulator.mj_model.body_mocapid[body_id]
     if self._mocap_id < 0:
       raise ValueError(f"Body '{self._body_name}' is not a mocap body.")

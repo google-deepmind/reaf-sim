@@ -120,7 +120,7 @@ def _build(
   dev = multi_asset_device.MultiAssetDevice(
       name="obj_asset", body_name=body_name, assets=assets
   )
-  spec = dev.configure_spec(scene, prefix="")
+  spec = dev.configure_spec(scene)
   sim = simulator_module.Simulator(
       mj_spec=spec, nworld=nworld, xpu_device="cpu", impl=impl
   )
@@ -157,7 +157,7 @@ class MultiAssetDeviceTest(absltest.TestCase):
         name="obj_asset", body_name="obj", assets=assets
     )
     sim = simulator_module.Simulator(
-        mj_spec=dev.configure_spec(_scene(), prefix=""),
+        mj_spec=dev.configure_spec(_scene()),
         nworld=3,
         xpu_device="cpu",
         impl=types.Impl.WARP,
@@ -366,7 +366,7 @@ class MultiAssetDeviceTest(absltest.TestCase):
         name="obj_asset", body_name="obj", assets=assets, resample_on_reset=True
     )
     sim = simulator_module.Simulator(
-        mj_spec=dev.configure_spec(_scene(), prefix=""),
+        mj_spec=dev.configure_spec(_scene()),
         nworld=64,
         xpu_device="cpu",
         impl=types.Impl.WARP,

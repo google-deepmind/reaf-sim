@@ -60,8 +60,8 @@ def _setup(measurements=None):
       name="robot_state",
       measurements=measurements or [],
       xpu_device=_DEVICE,
+      joint_names=["robot/joint1", "robot/joint2"],
   )
-  dev.configure_spec(spec, prefix="robot/")
   sim = simulator_module.Simulator(
       mj_spec=spec,
       nworld=_NWORLD,

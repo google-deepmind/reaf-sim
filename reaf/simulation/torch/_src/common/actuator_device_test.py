@@ -124,11 +124,10 @@ class ConfigureSpecTest(absltest.TestCase):
     """Position actuator: gainprm[0]=kp, biasprm[1]=-kp, biasprm[2]=-kd."""
     spec = mujoco.MjSpec.from_string(MINIMAL_XML)
     dev = actuator_device.ActuatorDevice(
-        name="robot", xpu_device="cpu", targets=["j1"]
+        name="robot", xpu_device="cpu", targets=["robot/j1"]
     )
     dev.configure_spec(
         spec,
-        prefix="robot/",
         mode="position",
         stiffness=100.0,
         damping=10.0,
@@ -154,11 +153,10 @@ class ConfigureSpecTest(absltest.TestCase):
     """Velocity actuator: gainprm[0]=kd, biasprm[2]=-kd."""
     spec = mujoco.MjSpec.from_string(MINIMAL_XML)
     dev = actuator_device.ActuatorDevice(
-        name="robot", xpu_device="cpu", targets=["j1"]
+        name="robot", xpu_device="cpu", targets=["robot/j1"]
     )
     dev.configure_spec(
         spec,
-        prefix="robot/",
         mode="velocity",
         damping=20.0,
         forcerange=40.0,
@@ -182,11 +180,10 @@ class ConfigureSpecTest(absltest.TestCase):
     """Motor actuator: biastype=NONE, ctrl=force so both limited."""
     spec = mujoco.MjSpec.from_string(MINIMAL_XML)
     dev = actuator_device.ActuatorDevice(
-        name="robot", xpu_device="cpu", targets=["j1"]
+        name="robot", xpu_device="cpu", targets=["robot/j1"]
     )
     dev.configure_spec(
         spec,
-        prefix="robot/",
         mode="motor",
         forcerange=50.0,
     )
@@ -209,11 +206,13 @@ class ConfigureSpecTest(absltest.TestCase):
     """Tendon transmission: trntype=TENDON, armature/frictionloss set."""
     spec = mujoco.MjSpec.from_string(TENDON_XML)
     dev = actuator_device.ActuatorDevice(
-        name="robot", xpu_device="cpu", targets=["t1"], transmission="tendon"
+        name="robot",
+        xpu_device="cpu",
+        targets=["robot/t1"],
+        transmission="tendon",
     )
     dev.configure_spec(
         spec,
-        prefix="robot/",
         mode="position",
         stiffness=50.0,
         damping=5.0,
@@ -237,11 +236,13 @@ class ConfigureSpecTest(absltest.TestCase):
     """Site transmission: trntype=SITE, 6-element gear."""
     spec = mujoco.MjSpec.from_string(SITE_XML)
     dev = actuator_device.ActuatorDevice(
-        name="robot", xpu_device="cpu", targets=["s1"], transmission="site"
+        name="robot",
+        xpu_device="cpu",
+        targets=["robot/s1"],
+        transmission="site",
     )
     dev.configure_spec(
         spec,
-        prefix="robot/",
         mode="motor",
         forcerange=10.0,
         gear=[1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
@@ -262,12 +263,11 @@ class ConfigureSpecTest(absltest.TestCase):
     """Spec with actuator name different than joint name compiles successfully."""
     spec = mujoco.MjSpec.from_string(DIFF_NAMES_XML)
     dev = actuator_device.ActuatorDevice(
-        name="robot", xpu_device="cpu", targets=["my_actuator"]
+        name="robot", xpu_device="cpu", targets=["robot/my_actuator"]
     )
     # Should compile successfully without "Joint not found" ValueError
     dev.configure_spec(
         spec,
-        prefix="robot/",
         use_existing=True,
     )
     model = spec.compile()
@@ -284,14 +284,13 @@ class ConfigureSpecTest(absltest.TestCase):
     act = spec.add_actuator(name="robot/j1", target="robot/j1")
     act.trntype = mujoco.mjtTrn.mjTRN_JOINT
     dev = actuator_device.ActuatorDevice(
-        name="robot", xpu_device="cpu", targets=["j1"]
+        name="robot", xpu_device="cpu", targets=["robot/j1"]
     )
     # If the bug is present (no fallback search), this will try to re-add
     # "robot/j1" and fail with ValueError: repeated name.
     # With the fallback search, it should find it, skip it, and succeed.
     dev.configure_spec(
         spec,
-        prefix="robot/",
         use_existing=True,
     )
     model = spec.compile()
@@ -317,12 +316,11 @@ class ConfigureSpecTest(absltest.TestCase):
     vel_act.trntype = mujoco.mjtTrn.mjTRN_JOINT
 
     dev = actuator_device.ActuatorDevice(
-        name="gripper", xpu_device="cpu", targets=["slider_vel"]
+        name="gripper", xpu_device="cpu", targets=["gripper/slider_vel"]
     )
     # This should fail with "repeated name" if it fails to find the existing.
     dev.configure_spec(
         scene_spec,
-        prefix="gripper/",
         use_existing=True,
     )
     model = scene_spec.compile()
@@ -336,9 +334,9 @@ class RuntimeTest(absltest.TestCase):
     """Measurements from entity match raw mj_data values."""
     spec = mujoco.MjSpec.from_string(MINIMAL_XML)
     dev = actuator_device.ActuatorDevice(
-        name="robot", xpu_device="cpu", targets=["j1"]
+        name="robot", xpu_device="cpu", targets=["robot/j1"]
     )
-    dev.configure_spec(spec, prefix="robot/", mode="position", stiffness=100.0)
+    dev.configure_spec(spec, mode="position", stiffness=100.0)
     mj_model = spec.compile()
     mj_data = mujoco.MjData(mj_model)
 
@@ -350,12 +348,11 @@ class RuntimeTest(absltest.TestCase):
     dev = actuator_device.ActuatorDevice(
         name="robot",
         xpu_device="cpu",
-        targets=["j1"],
+        targets=["robot/j1"],
         transmission="joint",
         measurements=["joint_pos", "joint_vel", "actuator_force"],
     )
 
-    dev._attachment_prefix = "robot/"
     sim = simulator_module.Simulator(mj_spec=spec, impl=types.Impl.CPP)
     sim.data.obj.qpos[:] = mj_data.qpos[:]
     sim.data.obj.qvel[:] = mj_data.qvel[:]
@@ -379,14 +376,19 @@ class RuntimeTest(absltest.TestCase):
     """set_substep_commands writes to data.ctrl correctly."""
     spec = mujoco.MjSpec.from_string(MINIMAL_XML)
     dev = actuator_device.ActuatorDevice(
-        name="robot", xpu_device="cpu", targets=["j1"], transmission="joint"
+        name="robot",
+        xpu_device="cpu",
+        targets=["robot/j1"],
+        transmission="joint",
     )
-    dev.configure_spec(spec, prefix="robot/", mode="position")
+    dev.configure_spec(spec, mode="position")
 
     dev = actuator_device.ActuatorDevice(
-        name="robot", xpu_device="cpu", targets=["j1"], transmission="joint"
+        name="robot",
+        xpu_device="cpu",
+        targets=["robot/j1"],
+        transmission="joint",
     )
-    dev._attachment_prefix = "robot/"
     sim = simulator_module.Simulator(
         mj_spec=spec, nworld=1, impl=types.Impl.CPP
     )
@@ -401,12 +403,14 @@ class RuntimeTest(absltest.TestCase):
     """Tendon measurements use correct indices."""
     spec = mujoco.MjSpec.from_string(MIXED_XML)
     dev = actuator_device.ActuatorDevice(
-        name="robot", xpu_device="cpu", targets=["t1"], transmission="tendon"
+        name="robot",
+        xpu_device="cpu",
+        targets=["robot/t1"],
+        transmission="tendon",
     )
     dev.configure_spec(
         spec,
-        prefix="robot/",
-        targets=["t1"],
+        targets=["robot/t1"],
         mode="position",
         transmission="tendon",
         stiffness=100.0,
@@ -421,11 +425,10 @@ class RuntimeTest(absltest.TestCase):
     dev = actuator_device.ActuatorDevice(
         name="robot",
         xpu_device="cpu",
-        targets=["t1"],
+        targets=["robot/t1"],
         transmission="tendon",
         measurements=["tendon_length", "tendon_velocity"],
     )
-    dev._attachment_prefix = "robot/"
     sim = simulator_module.Simulator(mj_spec=spec, impl=types.Impl.CPP)
     sim.data.obj.qpos[:] = mj_data.qpos[:]
     sim.forward()

@@ -231,9 +231,7 @@ def build_device_layer(
     )
     devices.append(dev)
 
-    mj_spec = dev.configure_spec(
-        mj_spec, prefix=_attachment_prefix(component), **component.build_params
-    )
+    mj_spec = dev.configure_spec(mj_spec, **component.build_params)
 
   # Instantiate substep commands processors (sim only)
   substep_commands_processors = []

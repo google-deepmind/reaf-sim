@@ -58,7 +58,7 @@ class InsideSiteDeviceTest(parameterized.TestCase):
         body_name="target_box",
         site_name="container_site",
     )
-    dev.configure_spec(spec, prefix="")
+    dev.configure_spec(spec)
     mj_model = spec.compile()
     self.assertEqual(mj_model.nsensor, 1)
 
@@ -77,7 +77,7 @@ class InsideSiteDeviceTest(parameterized.TestCase):
         body_name="target_box",
         site_name="container_site",
     )
-    dev.configure_spec(spec, prefix="")
+    dev.configure_spec(spec)
     nworld = 2
 
     sim = simulator_module.Simulator(
@@ -112,7 +112,7 @@ class InsideSiteDeviceTest(parameterized.TestCase):
         site_name="container_site",
         dark=True,
     )
-    dev.configure_spec(spec, prefix="")
+    dev.configure_spec(spec)
     nworld = 2
 
     sim = simulator_module.Simulator(

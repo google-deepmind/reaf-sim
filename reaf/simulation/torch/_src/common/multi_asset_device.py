@@ -188,10 +188,9 @@ class MultiAssetDevice(device.Device):
   def configure_spec(
       self,
       spec: mujoco.MjSpec,
-      prefix: str,
   ) -> mujoco.MjSpec:
     """Replaces the body's geoms and copies every asset's meshes into `spec`."""
-    spec = super().configure_spec(spec, prefix)
+    spec = super().configure_spec(spec)
     body = spec.body(self._body_name)
     if body is None:
       raise ValueError(f"{self._name}: body '{self._body_name}' not found.")

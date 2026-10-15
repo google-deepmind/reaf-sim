@@ -192,7 +192,7 @@ class FreeDeviceTest(absltest.TestCase):
         name="cube", body_name="cube", joint_name="cube_joint"
     )
     # configure_spec is mostly a no-op for FreeDevice currently but should be callable
-    spec = dev.configure_spec(spec, prefix="cube")
+    spec = dev.configure_spec(spec)
     self.assertIsInstance(spec, mujoco.MjSpec)
 
 
@@ -267,7 +267,7 @@ class MocapDeviceTest(absltest.TestCase):
   def test_configure_spec(self):
     spec = _make_mocap_body_spec()
     dev = free_device.MocapDevice(name="target", body_name="target")
-    spec = dev.configure_spec(spec, prefix="", geom_group=1)
+    spec = dev.configure_spec(spec, geom_group=1)
     self.assertIsInstance(spec, mujoco.MjSpec)
     body = spec.body("target")
     self.assertEqual(body.geoms[0].group, 1)

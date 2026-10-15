@@ -59,36 +59,33 @@ class SiteDevice(device.Device):
   def configure_spec(
       self,
       spec: mujoco.MjSpec,
-      prefix: str,
   ) -> mujoco.MjSpec:
-    spec = super().configure_spec(spec, prefix)
+    spec = super().configure_spec(spec)
     if self._reference_site_name is not None:
-      p = self._attachment_prefix
-      self._sensor_pos_name = f"{p}{self._name}_framepos"
+      self._sensor_pos_name = f"{self._name}_framepos"
       spec.add_sensor(
           name=self._sensor_pos_name,
           type=mujoco.mjtSensor.mjSENS_FRAMEPOS,
           objtype=mujoco.mjtObj.mjOBJ_SITE,
-          objname=f"{p}{self._site_name}",
+          objname=self._site_name,
           reftype=mujoco.mjtObj.mjOBJ_SITE,
-          refname=f"{p}{self._reference_site_name}",
+          refname=self._reference_site_name,
       )
-      self._sensor_quat_name = f"{p}{self._name}_framequat"
+      self._sensor_quat_name = f"{self._name}_framequat"
       spec.add_sensor(
           name=self._sensor_quat_name,
           type=mujoco.mjtSensor.mjSENS_FRAMEQUAT,
           objtype=mujoco.mjtObj.mjOBJ_SITE,
-          objname=f"{p}{self._site_name}",
+          objname=self._site_name,
           reftype=mujoco.mjtObj.mjOBJ_SITE,
-          refname=f"{p}{self._reference_site_name}",
+          refname=self._reference_site_name,
       )
     return spec
 
   def initialize(self, simulator: simulator_module.Simulator) -> None:
     """Resolve site ID from compiled model."""
     mj_model = simulator.mj_model
-    site_name = f"{self._attachment_prefix}{self._site_name}"
-    self._site_id = mj_model.site(site_name).id
+    self._site_id = mj_model.site(self._site_name).id
 
     if self._reference_site_name is not None:
       sensor_pos = mj_model.sensor(self._sensor_pos_name)

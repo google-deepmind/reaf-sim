@@ -27,7 +27,6 @@ from reaf.simulation.torch._src.core import device
 from reaf.simulation.torch._src.core import simulator as simulator_module
 from reaf.simulation.torch._src.core import types
 import torch
-from typing_extensions import override
 import warp as wp
 
 _logger = logging.getLogger(__name__)
@@ -35,16 +34,6 @@ _logger = logging.getLogger(__name__)
 
 class CameraDevice(device.Device):
   """Entity that renders the scene using MuJoCo rendering."""
-
-  @override
-  def configure_spec(
-      self,
-      spec: mujoco.MjSpec,
-      prefix: str,
-  ) -> mujoco.MjSpec:
-    """Configure camera in spec (build time)."""
-    del prefix
-    return spec
 
   def __init__(
       self,

@@ -65,7 +65,6 @@ class BuildTest(absltest.TestCase):
     self.assertIsNotNone(env)
     # Check if the device's geom exists in the compiled model
     mj_model = env.device_layer.sim.mj_model
-    # Names should be prefixed with "my_device/"
     geom_names = [mj_model.geom(i).name for i in range(mj_model.ngeom)]
     self.assertIn("box", geom_names)
 

@@ -14,10 +14,8 @@
 """Represents the simulation's internal clock."""
 
 from collections.abc import Mapping
-from typing import Union
 
 from dm_env import specs
-import mujoco
 import numpy as np
 from reaf.simulation.torch._src.core import device as device_module
 from reaf.simulation.torch._src.core import simulator as simulator_module
@@ -26,16 +24,6 @@ import torch
 
 class ClockDevice(device_module.Device):
   """Provides the current simulation time at each step."""
-
-  @classmethod
-  def configure_spec(
-      cls,
-      spec: mujoco.MjSpec,
-      prefix: str,
-  ) -> mujoco.MjSpec:
-    """Configure spec (build time). ClockDevice has no spec requirements."""
-    del prefix
-    return spec
 
   def __init__(
       self,

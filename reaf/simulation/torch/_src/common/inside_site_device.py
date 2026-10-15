@@ -60,7 +60,6 @@ class InsideSiteDevice(device.Device):
   def configure_spec(
       self,
       spec: mujoco.MjSpec,
-      prefix: str,
   ) -> mujoco.MjSpec:
     """Add an mjSENS_INSIDESITE sensor to the spec.
 
@@ -73,7 +72,7 @@ class InsideSiteDevice(device.Device):
     See https://mujoco.readthedocs.io/en/stable/XMLreference.html#sensor
     for full mjSENS_INSIDESITE documentation.
     """
-    spec = super().configure_spec(spec, prefix)
+    spec = super().configure_spec(spec)
     # intprm encodes [dataspec, reduce, dim]:
     #   dataspec=1 (bit 0 = "found"): output whether the body is inside.
     #   reduce=0  ("none"): no reduction across multiple contacts.

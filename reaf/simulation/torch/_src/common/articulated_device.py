@@ -16,9 +16,7 @@
 
 from collections.abc import Mapping
 from typing import override
-
 from dm_env import specs
-import mujoco
 import numpy as np
 from reaf.simulation.torch._src.core import device
 from reaf.simulation.torch._src.core import simulator as simulator_module
@@ -86,28 +84,17 @@ class ArticulatedDevice(device.Device):
     return self._home_qvel
 
   @override
-  def configure_spec(
-      self, mj_spec: mujoco.MjSpec, prefix: str = ""
-  ) -> mujoco.MjSpec:
-    return super().configure_spec(mj_spec, prefix)
-
-  @override
   def initialize(self, simulator: simulator_module.Simulator) -> None:
     self._simulator = simulator
     self._data = simulator.data
-    prefix = self._attachment_prefix
     mj_spec = simulator.mj_spec
 
     if self._joint_names is not None:
-      self._joints = [
-          mj_spec.joint(f"{prefix}{jn}") for jn in self._joint_names
-      ]
+      self._joints = [mj_spec.joint(jn) for jn in self._joint_names]
     else:
-      self._joints = [
-          j for j in mj_spec.joints if j.name and j.name.startswith(prefix)
-      ]
+      self._joints = [j for j in mj_spec.joints if j.name]
     if not self._joints:
-      raise ValueError(f"No joints found with prefix {prefix}")
+      raise ValueError("No joints found in spec.")
 
     self._bound_joints = simulator.data.bind(simulator.model, self._joints)
 

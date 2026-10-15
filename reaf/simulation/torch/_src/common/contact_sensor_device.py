@@ -86,7 +86,6 @@ class ContactSensorDevice(device.Device):
   def configure_spec(  # pyrefly: ignore[bad-override]
       self,
       spec: mujoco.MjSpec,
-      prefix: str,
       *,
       objtype: ObjType,
       objname: str | tuple[str, ...],
@@ -102,7 +101,6 @@ class ContactSensorDevice(device.Device):
 
     Args:
       spec: MjSpec to modify.
-      prefix: Entity name prefix (used by initialize() to find sensors).
       objtype: "geom", "body", or "xbody".
       objname: Name(s) to match on obj side (exact or regex pattern).
       reftype: "geom", "body", or "xbody" (None = any).
@@ -112,7 +110,7 @@ class ContactSensorDevice(device.Device):
       reduce: Reduction mode for multiple contacts.
       num: How many contacts to report.
     """
-    spec = super().configure_spec(spec, prefix)
+    spec = super().configure_spec(spec)
     if fields is None:
       fields = self._fields
 
@@ -128,7 +126,7 @@ class ContactSensorDevice(device.Device):
     self._sensor_names = []
 
     for obj_name in obj_names:
-      sensor_name = f"{self._attachment_prefix}{obj_name}"
+      sensor_name = f"{self._name}/{obj_name}"
       self._sensor_names.append(sensor_name)
       kwargs = {
           "name": sensor_name,
