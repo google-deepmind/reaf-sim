@@ -15,7 +15,9 @@
 """Model randomization utilities for domain randomization."""
 
 import math as _math
-from typing import Callable, Sequence, Union
+from typing import Callable
+from typing import Sequence
+from typing import Union
 
 import mujoco
 from reaf.simulation.torch._src.common import math

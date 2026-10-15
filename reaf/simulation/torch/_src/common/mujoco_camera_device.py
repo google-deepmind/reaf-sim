@@ -17,7 +17,9 @@
 import enum
 import logging
 import math
-from typing import Any, Mapping, Self
+from typing import Any
+from typing import Mapping
+from typing import Self
 
 from dm_env import specs
 import mujoco
@@ -130,9 +132,7 @@ class MujocoCameraDevice(device.Device):
     """
 
     if render_rate_hz <= 0:
-      raise ValueError(
-          f'render_rate_hz must be positive, got {render_rate_hz}'
-      )
+      raise ValueError(f'render_rate_hz must be positive, got {render_rate_hz}')
 
     if delay_ms < 0:
       raise ValueError(f'delay_ms must be non-negative, got {delay_ms}')

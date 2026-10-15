@@ -61,7 +61,9 @@ class ActionHistoryTest(absltest.TestCase):
     self.assertEqual(keys, set())
 
   def test_process_commands_passthrough(self):
-    action = torch.ones(self.nworld, *self.feature_shape, device=self.xpu_device)
+    action = torch.ones(
+        self.nworld, *self.feature_shape, device=self.xpu_device
+    )
     result = self.history.process_commands({self.key: action})
     self.assertEqual(set(result.keys()), {self.key})
     torch.testing.assert_close(result[self.key], action)
@@ -142,7 +144,9 @@ class ActionHistoryTest(absltest.TestCase):
     )
     self.history.reset_action.copy_(custom_action)
 
-    action = torch.ones(self.nworld, *self.feature_shape, device=self.xpu_device)
+    action = torch.ones(
+        self.nworld, *self.feature_shape, device=self.xpu_device
+    )
     self.history.process_commands({self.key: action})
     self.history.process_commands({self.key: action * 2.0})
 
@@ -200,7 +204,9 @@ class ActionHistoryTest(absltest.TestCase):
     )
 
   def test_init_with_wrong_shape_raises(self):
-    wrong_shape_action = torch.tensor([1.0, 2.0, 3.0, 4.0], device=self.xpu_device)
+    wrong_shape_action = torch.tensor(
+        [1.0, 2.0, 3.0, 4.0], device=self.xpu_device
+    )
     with self.assertRaisesRegex(ValueError, "expected"):
       action_history.ActionHistory(
           key=self.key,
@@ -230,7 +236,11 @@ class ActionHistoryTest(absltest.TestCase):
   def test_no_history(self):
     """history_length=0 produces only the current action feature."""
     h = action_history.ActionHistory(
-        key="a", feature_shape=(2,), nworld=1, xpu_device="cpu", history_length=0
+        key="a",
+        feature_shape=(2,),
+        nworld=1,
+        xpu_device="cpu",
+        history_length=0,
     )
     spec = h.produced_features_spec()
     self.assertEqual(set(spec.keys()), {"a"})

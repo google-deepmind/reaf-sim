@@ -15,10 +15,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
+from collections.abc import Sequence
 import itertools
 import math
-from typing import Any, Optional, Union
+from typing import Any
+from typing import Optional
 
 from dm_env import specs
 from gdm_robotics.interfaces import types as gdmr_types

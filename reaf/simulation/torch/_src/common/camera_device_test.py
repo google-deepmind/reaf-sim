@@ -16,6 +16,7 @@
 """Tests for camera_device."""
 
 import unittest
+
 from absl.testing import absltest
 from absl.testing import parameterized
 import mujoco
@@ -442,15 +443,11 @@ class CamNamesToMaskTest(parameterized.TestCase):
 
   def test_unknown_camera_name_raises(self):
     with self.assertRaises(ValueError):
-      camera_device._cam_names_to_mask(
-          self.mj_spec, cam_name=["cam_unknown"]
-      )
+      camera_device._cam_names_to_mask(self.mj_spec, cam_name=["cam_unknown"])
 
   def test_duplicate_camera_name_raises(self):
     with self.assertRaises(ValueError):
-      camera_device._cam_names_to_mask(
-          self.mj_spec, cam_name=["cam", "cam"]
-      )
+      camera_device._cam_names_to_mask(self.mj_spec, cam_name=["cam", "cam"])
 
 
 if __name__ == "__main__":

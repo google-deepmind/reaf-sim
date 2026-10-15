@@ -15,7 +15,8 @@
 """Entities for actuated robots."""
 
 from collections.abc import Mapping
-from typing import Any, Literal
+from typing import Any
+from typing import Literal
 from typing import override
 
 from dm_env import specs

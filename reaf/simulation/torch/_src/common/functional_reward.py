@@ -14,7 +14,8 @@
 
 """FunctionalRewardProvider that wraps callable functions."""
 
-from collections.abc import Mapping, Set
+from collections.abc import Mapping
+from collections.abc import Set
 from typing import TypedDict
 
 from dm_env import specs

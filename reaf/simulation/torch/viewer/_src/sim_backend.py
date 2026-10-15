@@ -15,7 +15,8 @@
 """Simulation-side backend for reaf-sim Studio Viewer."""
 
 from collections.abc import Sequence
-from typing import Any, Generic
+from typing import Any
+from typing import Generic
 
 import dm_env
 from gdm_robotics.interfaces import environment as gdmr_env

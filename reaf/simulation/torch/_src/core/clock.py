@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import dataclasses
+
 import torch
 
 
@@ -93,4 +94,3 @@ class Clock:
     else:
       self.episode_step[env_mask] = 0
       self.episode_substep[env_mask] = 0
-

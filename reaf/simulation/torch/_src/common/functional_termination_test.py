@@ -14,8 +14,9 @@
 
 """Tests for FunctionalTerminationChecker."""
 
-from dataclasses import dataclass, field
-from typing import Any, Callable
+import dataclasses
+from typing import Any
+from typing import Callable
 
 from absl.testing import absltest
 from reaf.simulation.torch._src.common import functional_termination
@@ -27,10 +28,10 @@ R = termination_checker.TerminationResult.TRUNCATE
 N = termination_checker.TerminationResult.DO_NOT_TERMINATE
 
 
-@dataclass
+@dataclasses.dataclass
 class Term:
   func: Callable[..., torch.Tensor]
-  params: dict[str, Any] = field(default_factory=dict)
+  params: dict[str, Any] = dataclasses.field(default_factory=dict)
   weight: float | None = None
   output_shape: tuple[int, ...] | None = None
 

@@ -29,7 +29,6 @@ from reaf.simulation.torch._src.common import timeout_termination_checker
 from reaf.simulation.torch._src.core import termination_checker
 import torch
 
-
 TerminationResult: TypeAlias = base_termination_checker.TerminationResult
 
 

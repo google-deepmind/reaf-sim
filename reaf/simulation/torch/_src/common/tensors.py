@@ -15,6 +15,7 @@
 """Tensor utility functions for simulation."""
 
 from typing import Union
+
 import torch
 
 

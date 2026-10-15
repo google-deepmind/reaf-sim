@@ -19,7 +19,8 @@ in a single entity rather than split across multiple entities, which
 improves raw throughput of rendering with multiple cameras.
 """
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
+from collections.abc import Sequence
 import logging
 import math
 
@@ -65,9 +66,7 @@ class BatchedMujocoCameraDevice(device.Device):
       scene_option: MuJoCo visualization options.
     """
     if render_rate_hz <= 0:
-      raise ValueError(
-          f'render_rate_hz must be positive, got {render_rate_hz}'
-      )
+      raise ValueError(f'render_rate_hz must be positive, got {render_rate_hz}')
 
     self._name = name
     self._camera_configs = list(camera_configs)

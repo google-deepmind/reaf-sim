@@ -18,7 +18,10 @@ from typing import Literal
 import imageio
 import mujoco
 import numpy as np
-from reaf.simulation.torch import ActuatorDevice, CameraDevice, flat_scene, MujocoCameraDevice
+from reaf.simulation.torch import ActuatorDevice
+from reaf.simulation.torch import CameraDevice
+from reaf.simulation.torch import flat_scene
+from reaf.simulation.torch import MujocoCameraDevice
 import torch
 
 # DeepMind Control Suite Cartpole XML
@@ -117,9 +120,9 @@ def create_cartpole_env(
       observation_adapter={
           "slider_actuator/joint_pos": flat_scene.ObsGroup(
               terms={
-                  "pos": flat_scene.Obs(
-                      "slider_actuator/joint_pos"
-                  ).configure(output_shape=(1,)),
+                  "pos": flat_scene.Obs("slider_actuator/joint_pos").configure(
+                      output_shape=(1,)
+                  ),
               }
           ),
           "camera/fixed_rgb": flat_scene.ObsGroup(

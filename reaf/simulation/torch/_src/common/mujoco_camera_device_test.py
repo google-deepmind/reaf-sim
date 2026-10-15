@@ -330,9 +330,7 @@ class MujocoCameraDeviceTest(parameterized.TestCase):
         delay_ms=150,
         render_rate_hz=3,
     )
-    with self.assertLogs(
-        mujoco_camera_device.__name__, level="WARNING"
-    ) as cm:
+    with self.assertLogs(mujoco_camera_device.__name__, level="WARNING") as cm:
       self._create_device(entity)
     log_text = "\n".join(cm.output)
     self.assertIn("render_rate_hz=3", log_text)
@@ -472,9 +470,7 @@ class MujocoCameraDeviceTest(parameterized.TestCase):
     """
     delay_substeps = 2
     baseline = self._create_named_entity("base", delay_ms=0)
-    delayed = self._create_named_entity(
-        "delayed", delay_ms=200
-    )
+    delayed = self._create_named_entity("delayed", delay_ms=200)
     device = self._create_device_layer([baseline, delayed], impl=impl)
 
     # Accumulate enough history that the delay is fully engaged.

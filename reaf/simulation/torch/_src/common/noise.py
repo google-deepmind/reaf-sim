@@ -17,7 +17,8 @@
 from collections.abc import Mapping
 import dataclasses
 import math as _math
-from typing import Callable, Literal
+from typing import Callable
+from typing import Literal
 
 from reaf.simulation.torch._src.common import math
 import torch

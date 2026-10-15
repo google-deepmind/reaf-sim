@@ -17,7 +17,8 @@
 from collections.abc import Callable
 from collections.abc import Mapping
 from collections.abc import Sequence
-from typing import Any, Union
+from typing import Any
+from typing import Union
 
 from gdm_robotics.interfaces import environment as gdmr_env
 import mujoco

@@ -18,7 +18,7 @@ Uses MuJoCo naming: objtype/objname for primary, reftype/refname for secondary.
 """
 
 from collections.abc import Mapping
-from typing import Literal, Union
+from typing import Literal
 from typing import override
 
 from dm_env import specs

@@ -15,7 +15,7 @@
 """Action history: tracks commands and exposes them as features."""
 
 from collections.abc import Mapping
-from typing import Sequence, Union
+from typing import Sequence
 
 from dm_env import specs
 from gdm_robotics.interfaces import types as gdmr_types

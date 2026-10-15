@@ -22,6 +22,7 @@ from reaf.simulation.torch._src.common import math
 from reaf.simulation.torch._src.common import noise
 from reaf.simulation.torch._src.common import processors
 import torch
+
 _M = mock.MagicMock()
 _SIM_DT = 0.005  # 5ms physics timestep
 
@@ -454,9 +455,7 @@ class DeltaActionsTest(absltest.TestCase):
     )
     # Incoming delta 2.0 clamped to 0.5 -> pos 0.5
     res = proc.process_commands({"actions": torch.tensor([[2.0], [-2.0]])})
-    torch.testing.assert_close(
-        res["robot/ctrl"], torch.tensor([[0.5], [-0.5]])
-    )
+    torch.testing.assert_close(res["robot/ctrl"], torch.tensor([[0.5], [-0.5]]))
 
   def test_action_smoothing(self):
     proc = self._make(

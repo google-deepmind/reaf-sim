@@ -32,7 +32,9 @@ Task-level processors apply policy-facing action transforms:
   clipping and smoothing.
 """
 
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Mapping
+from collections.abc import MutableMapping
+from collections.abc import Sequence
 import logging
 from typing import Callable
 

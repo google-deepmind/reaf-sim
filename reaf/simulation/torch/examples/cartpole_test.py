@@ -65,9 +65,7 @@ class CartpoleTest(parameterized.TestCase):
     )
 
     # Step the environment with a control command
-    commands = (
-        torch.ones((nworld, 1), device=torch.device(xpu_device)) * 0.5
-    )
+    commands = torch.ones((nworld, 1), device=torch.device(xpu_device)) * 0.5
     next_timestep = env.step({"slider_actuator/ctrl": commands})
     self.assertEqual(next_timestep.reward.shape[0], nworld)
     self.assertEqual(

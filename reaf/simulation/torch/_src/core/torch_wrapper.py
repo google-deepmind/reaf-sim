@@ -22,7 +22,16 @@ these pending constants via `Simulator.set_const()` before a forward call.
 import dataclasses
 import enum
 import functools
-from typing import Any, Callable, Generic, NoReturn, Optional, Sequence, TYPE_CHECKING, TypeVar, Union, overload
+from typing import Any
+from typing import Callable
+from typing import Generic
+from typing import NoReturn
+from typing import Optional
+from typing import overload
+from typing import Sequence
+from typing import TYPE_CHECKING
+from typing import TypeVar
+from typing import Union
 
 import mujoco
 from mujoco.introspect import structs as mj_structs
@@ -122,15 +131,19 @@ def _create_set_const_callback(
   if wrapper._obj_type not in (MjObjType.MJW_MODEL, MjObjType.MJ_MODEL):
     return None
   level = get_set_const_level(field_name)
+
   def _record():
     # Clone the field once before its first write so restore_defaults() can
     # reset it in-place without re-cloning on subsequent writes or resets.
     if field_name not in wrapper._defaults:
-      wrapper._defaults[field_name] = getattr(wrapper, field_name)._tensor.clone()
+      wrapper._defaults[field_name] = getattr(
+          wrapper, field_name
+      )._tensor.clone()
     if level != SetConstLevel.NONE:
       object.__setattr__(
           wrapper, "_pending_set_const", wrapper._pending_set_const | level
       )
+
   # pylint: enable=protected-access
   return _record
 
@@ -154,6 +167,8 @@ def _add_torch_operators(cls):
   setattr(cls, "__truediv__", lambda s, o: s._tensor / o)
   setattr(cls, "__rtruediv__", lambda s, o: o / s._tensor)
   return cls
+
+
 # pylint: enable=protected-access
 
 
@@ -411,6 +426,7 @@ class ScalarTensor(TorchTensor):
 
 class MjObjType(enum.Enum):
   """Enum for different types of Mujoco objects."""
+
   MJW_MODEL = "MJW_MODEL"
   MJW_DATA = "MJW_DATA"
   MJ_DATA = "MJ_DATA"
@@ -531,8 +547,11 @@ class TorchWrapper(Generic[T], NoSetAttr):
           self._obj_type, name, val, add_batch_dim, self._nworld
       )
       torch_val = TorchTensor(
-          val, add_batch_dim=add_batch_dim, view_shape=view_shape,
-          nworld=self._nworld, on_write=_create_set_const_callback(self, name),
+          val,
+          add_batch_dim=add_batch_dim,
+          view_shape=view_shape,
+          nworld=self._nworld,
+          on_write=_create_set_const_callback(self, name),
       )
       self._tensor_cache[name] = torch_val
       return torch_val
@@ -1098,10 +1117,12 @@ def _shape_annotations_compatible(
   # into "nactuator" (objects), "nu" (controls), and "nout" (force outputs).
   # Allow "nactuator" and "nout" to match "nu" for backward/forward compatibility.
   act_dim_aliases = {"nactuator": "nu", "nout": "nu"}
-  mjw_shape_str = [act_dim_aliases.get(i, i)
-                   for i in mjw_shape if not isinstance(i, int)]
-  mj_shape_str = [act_dim_aliases.get(i, i)
-                  for i in mj_shape if not isinstance(i, int)]
+  mjw_shape_str = [
+      act_dim_aliases.get(i, i) for i in mjw_shape if not isinstance(i, int)
+  ]
+  mj_shape_str = [
+      act_dim_aliases.get(i, i) for i in mj_shape if not isinstance(i, int)
+  ]
   if mjw_shape_str != mj_shape_str:
     return False
 

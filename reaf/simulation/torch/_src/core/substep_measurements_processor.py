@@ -14,7 +14,9 @@
 """Abstract class for substep measurements manipulation in reaf-sim."""
 
 import abc
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Mapping
+from collections.abc import MutableMapping
+
 from dm_env import specs
 from reaf.simulation.torch._src.core import simulator as simulator_module
 import torch

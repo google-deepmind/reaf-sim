@@ -14,7 +14,8 @@
 
 """Build REAF Environment from Embodied Scene config."""
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
+from collections.abc import Sequence
 import copy
 import inspect
 from typing import Any

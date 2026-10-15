@@ -15,7 +15,9 @@
 
 from collections.abc import Callable
 import enum
-from typing import Any, Protocol, TypeVar
+from typing import Any
+from typing import Protocol
+from typing import TypeVar
 
 import immutabledict
 import mujoco
@@ -23,7 +25,6 @@ import mujoco_warp as mjw
 import numpy as np
 from reaf.simulation.torch._src.core import torch_wrapper
 import torch
-
 
 Model = torch_wrapper.TorchWrapper[mjw.Model | mujoco.MjModel]
 Data = torch_wrapper.TorchWrapper[mjw.Data | mujoco.MjData]

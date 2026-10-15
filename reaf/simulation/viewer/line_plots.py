@@ -22,6 +22,7 @@ are useful for visualizing data streams in real-time during a simulation.
 import collections
 import colorsys
 import copy
+
 import mujoco
 import numpy as np
 

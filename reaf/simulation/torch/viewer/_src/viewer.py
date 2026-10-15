@@ -16,7 +16,8 @@
 
 import importlib
 import logging
-from typing import Any, Iterable
+from typing import Any
+from typing import Iterable
 
 import dm_env
 from gdm_robotics.interfaces import environment as gdmr_env

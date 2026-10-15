@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 from gdm_robotics.interfaces import environment as gdmr_env
 from reaf.simulation.torch._src.core import environment as reaf_environment

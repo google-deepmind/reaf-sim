@@ -13,7 +13,8 @@
 # limitations under the License.
 """Entity that wraps callable functions for measurements."""
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
+from collections.abc import Mapping
 from typing import Any
 
 from dm_env import specs

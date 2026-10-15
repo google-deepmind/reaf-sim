@@ -38,7 +38,9 @@ Usage as a context manager:
 import contextlib
 import enum
 import functools
-from typing import Any, Callable, Optional
+from typing import Any
+from typing import Callable
+from typing import Optional
 
 try:
   from tracy_client import tracy as _tracy  # pylint: disable=g-import-not-at-top

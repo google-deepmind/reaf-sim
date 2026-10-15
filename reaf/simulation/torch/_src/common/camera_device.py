@@ -87,9 +87,7 @@ class CameraDevice(device.Device):
         render context.
     """
     if render_rate_hz <= 0:
-      raise ValueError(
-          f'render_rate_hz must be positive, got {render_rate_hz}'
-      )
+      raise ValueError(f'render_rate_hz must be positive, got {render_rate_hz}')
 
     # Filter out params added by build system that RenderContext doesn't accept.
     render_context_kwargs.pop('xpu_device', None)
@@ -419,7 +417,7 @@ def _cam_names_to_mask(
       raise ValueError(f"Camera '{name}' not found in model.")
 
   if len(raw_names) != len(set(raw_names)):
-    raise ValueError(f"Duplicate camera names found in cam_name: {raw_names}")
+    raise ValueError(f'Duplicate camera names found in cam_name: {raw_names}')
 
   name_set = set(raw_names)
   selected_names = [n for n in all_names if n in name_set]

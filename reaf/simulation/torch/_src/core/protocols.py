@@ -14,7 +14,9 @@
 """Protocols for reaf-sim simulation."""
 
 from collections.abc import Mapping
-from typing import Any, Protocol, Union, runtime_checkable
+from typing import Any
+from typing import Protocol
+from typing import runtime_checkable
 
 from dm_env import specs
 from gdm_robotics.interfaces import types as gdmr_types

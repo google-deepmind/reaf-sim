@@ -15,7 +15,6 @@
 
 import abc
 from collections.abc import Mapping
-from typing import Any, Union
 
 from dm_env import specs
 import mujoco

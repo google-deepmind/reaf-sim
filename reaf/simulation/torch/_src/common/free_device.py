@@ -177,19 +177,19 @@ class FreeDevice(device.Device):
     """Set position for specified environments."""
     assert self._data is not None and self._qpos_adr is not None
     s = slice(self._qpos_adr, self._qpos_adr + 3)
-    tensors.masked_fill(self._data.qpos[:, s], env_mask, pos)  # pytype: disable=attribute-error
+    tensors.masked_fill(self._data.qpos[:, s], env_mask, pos)
 
   def set_quat(self, env_mask: torch.Tensor | None, quat: torch.Tensor) -> None:
     """Set quaternion for specified environments."""
     assert self._data is not None and self._qpos_adr is not None
     s = slice(self._qpos_adr + 3, self._qpos_adr + 7)
-    tensors.masked_fill(self._data.qpos[:, s], env_mask, quat)  # pytype: disable=attribute-error
+    tensors.masked_fill(self._data.qpos[:, s], env_mask, quat)
 
   def set_vel(self, env_mask: torch.Tensor | None, vel: torch.Tensor) -> None:
     """Set 6-DOF velocity (linear + angular) for specified environments."""
     assert self._data is not None and self._qvel_adr is not None
     s = slice(self._qvel_adr, self._qvel_adr + 6)
-    tensors.masked_fill(self._data.qvel[:, s], env_mask, vel)  # pytype: disable=attribute-error
+    tensors.masked_fill(self._data.qvel[:, s], env_mask, vel)
 
 
 class MocapDevice(device.Device):

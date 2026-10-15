@@ -14,7 +14,9 @@
 
 """FunctionalTerminationChecker that wraps callable functions."""
 
-from collections.abc import Mapping, Sequence, Set
+from collections.abc import Mapping
+from collections.abc import Sequence
+from collections.abc import Set
 
 from reaf.simulation.torch._src.core import termination_checker
 from reaf.simulation.torch._src.core.types import Term
@@ -48,7 +50,10 @@ class FunctionalTerminationChecker(termination_checker.TerminationChecker):
   def initialize(self, nworld: int, device: torch.device) -> None:
     """Initialize result buffer. Call before check_termination."""
     self._result_buffer = torch.full(
-        (nworld,), TerminationResult.DO_NOT_TERMINATE, dtype=torch.int32, device=device
+        (nworld,),
+        TerminationResult.DO_NOT_TERMINATE,
+        dtype=torch.int32,
+        device=device,
     )
 
   @property
@@ -63,9 +68,9 @@ class FunctionalTerminationChecker(termination_checker.TerminationChecker):
   ) -> torch.Tensor:
     """Run all check functions and combine results."""
     assert self._result_buffer is not None
-    results = torch.stack([
-        term.func(features, **term.params) for term in self._terms
-    ])
+    results = torch.stack(
+        [term.func(features, **term.params) for term in self._terms]
+    )
     torch.amax(results.to(torch.int32), dim=0, out=self._result_buffer)
     return self._result_buffer
 

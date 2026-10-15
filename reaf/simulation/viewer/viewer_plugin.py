@@ -15,7 +15,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable
+from collections.abc import Mapping
+from collections.abc import Sequence
 import logging
 from typing import Any
 
@@ -28,8 +30,8 @@ from reaf.simulation.viewer import line_plots
 from reaf.simulation.viewer import messages as reaf_messages
 import tree
 
-from mujoco.experimental.dear_imgui import dear_imgui as imgui
-from mujoco.experimental.implot import implot
+from mujoco.experimental.dear_imgui import dear_imgui as imgui  # isort: skip
+from mujoco.experimental.implot import implot  # isort: skip
 
 _module_logger = logging.getLogger(__name__)
 

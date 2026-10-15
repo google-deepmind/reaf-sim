@@ -339,15 +339,16 @@ class MathTest(absltest.TestCase):
         [0.70710678, 0.0, 0.0, 0.70710678],  # 90° Z
     ])
     # scipy uses xyzw convention
-    q_xyzw = np.stack([
-        q_wxyz[:, 1].numpy(),
-        q_wxyz[:, 2].numpy(),
-        q_wxyz[:, 3].numpy(),
-        q_wxyz[:, 0].numpy(),
-    ], axis=-1)
-    expected_aa = torch.from_numpy(
-        R.from_quat(q_xyzw).as_rotvec()
-    ).float()
+    q_xyzw = np.stack(
+        [
+            q_wxyz[:, 1].numpy(),
+            q_wxyz[:, 2].numpy(),
+            q_wxyz[:, 3].numpy(),
+            q_wxyz[:, 0].numpy(),
+        ],
+        axis=-1,
+    )
+    expected_aa = torch.from_numpy(R.from_quat(q_xyzw).as_rotvec()).float()
     aa = pg_math.axis_angle_from_quat(q_wxyz)
     torch.testing.assert_close(aa, expected_aa, atol=1e-5, rtol=1e-5)
 
@@ -404,9 +405,9 @@ class MathTest(absltest.TestCase):
   def test_yaw_quat_pure_yaw(self):
     """A pure yaw rotation should be returned unchanged (up to sign)."""
     yaw_angle = math.pi / 3
-    q_yaw = torch.tensor([
-        math.cos(yaw_angle / 2), 0.0, 0.0, math.sin(yaw_angle / 2)
-    ])
+    q_yaw = torch.tensor(
+        [math.cos(yaw_angle / 2), 0.0, 0.0, math.sin(yaw_angle / 2)]
+    )
     result = pg_math.yaw_quat(q_yaw.unsqueeze(0)).squeeze(0)
     # Normalize sign for comparison
     result = result * torch.sign(result[0])
@@ -432,7 +433,7 @@ class MathTest(absltest.TestCase):
   def test_yaw_quat_batch(self):
     """Batch yaw extraction."""
     q_batch = torch.tensor([
-        [1.0, 0.0, 0.0, 0.0],           # identity
+        [1.0, 0.0, 0.0, 0.0],  # identity
         [0.70710678, 0.0, 0.0, 0.70710678],  # 90° Z
     ])
     q_yaw = pg_math.yaw_quat(q_batch)

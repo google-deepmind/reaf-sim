@@ -18,7 +18,9 @@ Encapsulates MuJoCo / MuJoCo-Warp simulation state and stepping.
 
 from __future__ import annotations
 
-from typing import Any, Optional, Union
+from typing import Any
+from typing import Optional
+from typing import Union
 
 import mujoco
 import mujoco_warp as mjw

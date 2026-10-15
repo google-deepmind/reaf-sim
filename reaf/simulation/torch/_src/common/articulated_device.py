@@ -15,7 +15,8 @@
 """Entity for articulated robots (kinematic tree state)."""
 
 from collections.abc import Mapping
-from typing import Union, override
+from typing import override
+
 from dm_env import specs
 import mujoco
 import numpy as np

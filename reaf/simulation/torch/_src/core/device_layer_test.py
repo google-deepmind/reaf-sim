@@ -11,7 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Mapping
+from collections.abc import MutableMapping
 from typing import Any
 from unittest import mock
 

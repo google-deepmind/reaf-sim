@@ -799,13 +799,9 @@ class BindTest(parameterized.TestCase):
       mjw.step(mw.obj, dw.obj)
 
     # test bind() argument validation
-    with self.assertRaisesRegex(
-        TypeError, "takes 2 positional arguments"
-    ):
+    with self.assertRaisesRegex(TypeError, "takes 2 positional arguments"):
       dw.bind()  # pyrefly: ignore[no-matching-overload]
-    with self.assertRaisesRegex(
-        TypeError, "takes 2 positional arguments"
-    ):
+    with self.assertRaisesRegex(TypeError, "takes 2 positional arguments"):
       dw.bind(s.geoms)
     with self.assertRaisesRegex(
         TypeError, "requires a model wrapper as the first argument"
@@ -813,13 +809,9 @@ class BindTest(parameterized.TestCase):
       dw.bind(s.geoms, mw)
     with self.assertRaisesRegex(ValueError, "specs must not be empty"):
       dw.bind(mw, [])
-    with self.assertRaisesRegex(
-        TypeError, "takes 1 positional argument"
-    ):
+    with self.assertRaisesRegex(TypeError, "takes 1 positional argument"):
       mw.bind()  # pyrefly: ignore[no-matching-overload]
-    with self.assertRaisesRegex(
-        TypeError, "takes 1 positional argument"
-    ):
+    with self.assertRaisesRegex(TypeError, "takes 1 positional argument"):
       mw.bind(mw, s.geoms)
     with self.assertRaisesRegex(ValueError, "specs must not be empty"):
       mw.bind([])
@@ -928,9 +920,7 @@ class BindTest(parameterized.TestCase):
 
     bound = mw.bind_pattern(s, mujoco.mjtObj.mjOBJ_GEOM, "geom.*")
     self.assertEqual(bound.id.shape, (3,))
-    np.testing.assert_array_equal(
-        bound.pos.cpu().numpy()[0], m.geom_pos
-    )
+    np.testing.assert_array_equal(bound.pos.cpu().numpy()[0], m.geom_pos)
 
     bound_single = mw.bind_pattern(s, mujoco.mjtObj.mjOBJ_GEOM, "geom1")
     self.assertIsNot(bound, bound_single)

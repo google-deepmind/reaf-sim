@@ -168,9 +168,7 @@ class SimPluginTest(absltest.TestCase):
     for _ in range(4):
       self._sync()
     pause_events = [
-        e
-        for e in self.sim_events
-        if isinstance(e, messages.RequestPauseEvent)
+        e for e in self.sim_events if isinstance(e, messages.RequestPauseEvent)
     ]
     self.assertEqual(
         pause_events,

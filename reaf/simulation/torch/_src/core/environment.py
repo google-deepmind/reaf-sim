@@ -17,7 +17,8 @@ import abc
 from collections.abc import Mapping
 import enum
 import functools
-from typing import Any, Generic
+from typing import Any
+from typing import Generic
 
 from absl import logging
 import dm_env

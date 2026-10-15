@@ -15,7 +15,8 @@
 
 from collections.abc import Mapping
 import dataclasses
-from typing import Generic, TypeVar
+from typing import Generic
+from typing import TypeVar
 
 from dm_env import specs
 import torch

@@ -13,9 +13,11 @@
 # limitations under the License.
 """Task layer for the Robotics Environment Authoring Framework."""
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
+from collections.abc import Sequence
 import itertools
-from typing import Any, Protocol, Union
+from typing import Any
+from typing import Protocol
 
 from dm_env import specs
 from gdm_robotics.interfaces import types as gdmr_types
