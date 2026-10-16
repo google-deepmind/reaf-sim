@@ -105,14 +105,13 @@ def create_cartpole_env(
       ),
       device_layer=flat_scene.DeviceLayer(
           devices={
-              "slider_actuator": flat_scene.Component(
-                  ActuatorDevice,
-                  targets=["slider"],
-                  transmission="joint",
-                  measurements=["joint_pos", "joint_vel"],
-              ).configure_spec(
-                  mode="motor",
-                  forcerange=10.0,
+              "slider_actuator": (
+                  flat_scene.Component(
+                      ActuatorDevice,
+                      targets=["slider"],
+                      transmission="joint",
+                      measurements=["joint_pos", "joint_vel"],
+                  ).configure_spec(mode="motor", forcerange=10.0,)
               ),
               "camera": camera_comp,
           }
@@ -120,16 +119,20 @@ def create_cartpole_env(
       observation_adapter={
           "slider_actuator/joint_pos": flat_scene.ObsGroup(
               terms={
-                  "pos": flat_scene.Obs("slider_actuator/joint_pos").configure(
-                      output_shape=(1,)
+                  "pos": (
+                      flat_scene.Obs("slider_actuator/joint_pos").configure(
+                          output_shape=(1,)
+                      )
                   ),
               }
           ),
           "camera/fixed_rgb": flat_scene.ObsGroup(
               terms={
-                  "rgb": flat_scene.Obs("camera/fixed_rgb").configure(
-                      output_shape=(120, 160, 3),
-                      dtype="uint8",
+                  "rgb": (
+                      flat_scene.Obs("camera/fixed_rgb").configure(
+                          output_shape=(120, 160, 3),
+                          dtype="uint8",
+                      )
                   ),
               }
           ),

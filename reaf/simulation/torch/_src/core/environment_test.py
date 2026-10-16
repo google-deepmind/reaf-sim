@@ -689,9 +689,10 @@ class EnvironmentSetConstTest(parameterized.TestCase):
       calls.append(("forward", None))
       real_forward()
 
-    with mock.patch.object(
-        sim, "set_const", side_effect=set_const_spy
-    ), mock.patch.object(sim, "forward", side_effect=forward_spy):
+    with (
+        mock.patch.object(sim, "set_const", side_effect=set_const_spy),
+        mock.patch.object(sim, "forward", side_effect=forward_spy),
+    ):
       env.reset()
 
     self.assertEqual(
@@ -706,17 +707,19 @@ class EnvironmentSetConstTest(parameterized.TestCase):
   def test_reset_without_model_writes_skips_set_const(self, impl):
     env = self._build_env(impl, PendulumReset())
     sim = env.device_layer.sim
-    with mock.patch.object(
-        sim, "forward", wraps=sim.forward
-    ) as forward, mock.patch.object(
-        simulator_module.mujoco, "mj_setConst"
-    ) as mj_set_const, mock.patch.object(
-        simulator_module.mjw, "set_const"
-    ) as mjw_set_const, mock.patch.object(
-        simulator_module.mjw, "set_const_0"
-    ) as mjw_set_const_0, mock.patch.object(
-        simulator_module.mjw, "set_const_fixed"
-    ) as mjw_set_const_fixed:
+    with (
+        mock.patch.object(sim, "forward", wraps=sim.forward) as forward,
+        mock.patch.object(
+            simulator_module.mujoco, "mj_setConst"
+        ) as mj_set_const,
+        mock.patch.object(simulator_module.mjw, "set_const") as mjw_set_const,
+        mock.patch.object(
+            simulator_module.mjw, "set_const_0"
+        ) as mjw_set_const_0,
+        mock.patch.object(
+            simulator_module.mjw, "set_const_fixed"
+        ) as mjw_set_const_fixed,
+    ):
       env.reset()
     forward.assert_called_once()
     mj_set_const.assert_not_called()

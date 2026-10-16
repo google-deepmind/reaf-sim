@@ -16,6 +16,7 @@
 
 from collections.abc import Mapping
 from typing import override
+
 from dm_env import specs
 import numpy as np
 from reaf.simulation.torch._src.core import device

@@ -13,7 +13,7 @@ repos:
         types_or: [python, c, c++, cuda, shell, markdown, rst, yaml, json, toml]
 
   - repo: https://github.com/google/pyink
-    rev: 24.10.0
+    rev: 25.12.0
     hooks:
       - id: pyink
         name: Pyink (Formatting)
