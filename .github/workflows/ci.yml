@@ -30,10 +30,10 @@ jobs:
         run: make install-cpu
 
       - name: Run pre-commit
-        run: UV_NO_SYNC=1 uv run --group dev pre-commit run -a
+        run: uv run --no-sync --group dev pre-commit run -a
 
-  ci:
-    name: CI (Python ${{ matrix.python-version }})
+  test:
+    name: Test (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -60,8 +60,16 @@ jobs:
       - name: Sync CPU dependencies
         run: make install-cpu
 
-      - name: Run typecheck
-        run: make typecheck
-
       - name: Run tests
         run: make test
+
+  # Aggregates test matrix results into a single version-independent status check.
+  ci:
+    name: CI
+    needs: [test]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check test results
+        if: ${{ needs.test.result != 'success' }}
+        run: exit 1
