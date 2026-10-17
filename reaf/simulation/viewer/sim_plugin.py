@@ -31,6 +31,11 @@ _module_logger = logging.getLogger(__name__)
 # Seconds to sleep per sim loop iteration when nothing advances (e.g. paused).
 _IDLE_DURATION = 1.0 / 60.0
 
+# The mjtState components the viewer edits by dragging a mocap body.
+_MOCAP_SIG = int(mujoco.mjtState.mjSTATE_MOCAP_POS) | int(
+    mujoco.mjtState.mjSTATE_MOCAP_QUAT
+)
+
 
 @runtime_checkable
 class Instructable(Protocol):
@@ -67,6 +72,10 @@ class SimBackend(Protocol):
 
   def apply_perturbation(self, xfrc_applied_cpu: np.ndarray) -> None:
     """Applies an (nbody, 6) xfrc_applied array to the underlying simulation."""
+    ...
+
+  def apply_mocap(self, mocap_pos: np.ndarray, mocap_quat: np.ndarray) -> None:
+    """Applies mocap positions (nmocap, 3) and quaternions (nmocap, 4)."""
     ...
 
   # Forwarded through SimBackend because the backend owns the environment instance.
@@ -164,6 +173,29 @@ class SimPlugin(plugin.SimPlugin):
     """Forwards perturbation forces from the viewer to the backend."""
     # The state is mjSTATE_XFRC_APPLIED: nbody x 6 values, flattened.
     self._backend.apply_perturbation(np.reshape(event.state, (-1, 6)))
+
+  @messages.handler
+  def on_state(self, event: messages.StateEvent) -> None:
+    """Forwards mocap poses edited in the viewer, e.g. a dragged target body.
+
+    ``ViewerHandle`` applies the event to the CPU mirror after this handler,
+    but ``on_step`` rewrites the mirror from the backend, so the backend has to
+    receive the pose itself. Only the mocap components are forwarded; other
+    state edits (e.g. ``qpos`` from a paused drag of a free body) stay in the
+    mirror until the next sync overwrites them.
+    """
+    if not event.state_sig & _MOCAP_SIG or self._handle is None:
+      return
+    model, data = self._handle.model, self._handle.data
+    if model is None or data is None:
+      return
+    # Drop events built for another model, e.g. sent before a model change.
+    if len(event.state) != mujoco.mj_stateSize(model, event.state_sig):
+      return
+    # The event may carry one or both mocap components, possibly with other
+    # state; unpack it through the mirror rather than by offset arithmetic.
+    mujoco.mj_setState(model, data, event.state, event.state_sig)
+    self._backend.apply_mocap(data.mocap_pos, data.mocap_quat)
 
   @messages.handler
   def on_step(self, event: messages.StepEvent) -> None:

@@ -172,6 +172,16 @@ class TorchSimBackend(Generic[gdmr_types.PolicyDataType]):
     xfrc_applied = torch.as_tensor(xfrc_applied_cpu, device=self._xpu_device)
     self._simulator.data.xfrc_applied[self._world_id].copy_(xfrc_applied)
 
+  def apply_mocap(self, mocap_pos: np.ndarray, mocap_quat: np.ndarray) -> None:
+    """Applies mocap poses from viewer MjData to the Torch simulator."""
+    data = self._simulator.data
+    data.mocap_pos[self._world_id].copy_(
+        torch.as_tensor(mocap_pos, device=self._xpu_device)
+    )
+    data.mocap_quat[self._world_id].copy_(
+        torch.as_tensor(mocap_quat, device=self._xpu_device)
+    )
+
   def set_instruction(self, instruction: str) -> None:
     """Forwards a text instruction to the environment if supported."""
     sim_plugin.set_env_instruction(self._environment, instruction)

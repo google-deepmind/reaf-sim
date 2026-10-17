@@ -31,6 +31,9 @@ _XML = """
       <freejoint/>
       <geom size=".1"/>
     </body>
+    <body name="goal" mocap="true">
+      <geom size=".05" contype="0" conaffinity="0"/>
+    </body>
   </worldbody>
 </mujoco>
 """
@@ -45,6 +48,7 @@ class _FakeBackend:
     self.n_resets = 0
     self.n_syncs = 0
     self.perturbations: list[np.ndarray] = []
+    self.mocaps: list[tuple[np.ndarray, np.ndarray]] = []
     self.instructions: list[str] = []
 
   def reset(self) -> dm_env.TimeStep:
@@ -64,6 +68,10 @@ class _FakeBackend:
 
   def apply_perturbation(self, xfrc_applied_cpu: np.ndarray) -> None:
     self.perturbations.append(xfrc_applied_cpu)
+
+  def apply_mocap(self, mocap_pos: np.ndarray, mocap_quat: np.ndarray) -> None:
+    # Copy: the plugin passes views into the handle's MjData.
+    self.mocaps.append((mocap_pos.copy(), mocap_quat.copy()))
 
   def set_instruction(self, instruction: str) -> None:
     self.instructions.append(instruction)
@@ -195,6 +203,58 @@ class SimPluginTest(absltest.TestCase):
     np.testing.assert_array_equal(
         self.backend.perturbations[0], xfrc.reshape(self.model.nbody, 6)
     )
+
+  def test_mocap_state_is_forwarded(self):
+    self._sync()
+    # A running drag sends both mocap components; a paused drag also sends
+    # qpos. Either way the backend gets the full (nmocap, 3/4) arrays.
+    sig = (
+        int(mujoco.mjtState.mjSTATE_QPOS)
+        | int(mujoco.mjtState.mjSTATE_MOCAP_POS)
+        | int(mujoco.mjtState.mjSTATE_MOCAP_QUAT)
+    )
+    mocap_data = mujoco.MjData(self.model)
+    mocap_data.mocap_pos[0] = [0.1, 0.2, 0.3]
+    mocap_data.mocap_quat[0] = [0.0, 1.0, 0.0, 0.0]
+    state = np.empty(mujoco.mj_stateSize(self.model, sig))
+    mujoco.mj_getState(self.model, mocap_data, state, sig)
+    self.viewer_endpoint.send_to_sim(
+        messages.StateEvent(state=state, state_sig=sig)
+    )
+    self._sync()
+    self.assertLen(self.backend.mocaps, 1)
+    mocap_pos, mocap_quat = self.backend.mocaps[0]
+    np.testing.assert_array_equal(mocap_pos, [[0.1, 0.2, 0.3]])
+    np.testing.assert_array_equal(mocap_quat, [[0.0, 1.0, 0.0, 0.0]])
+
+  def test_mocap_position_only_state_keeps_mirror_orientation(self):
+    self._sync()
+    sig = int(mujoco.mjtState.mjSTATE_MOCAP_POS)
+    self.viewer_endpoint.send_to_sim(
+        messages.StateEvent(state=np.array([0.1, 0.2, 0.3]), state_sig=sig)
+    )
+    self._sync()
+    mocap_pos, mocap_quat = self.backend.mocaps[0]
+    np.testing.assert_array_equal(mocap_pos, [[0.1, 0.2, 0.3]])
+    np.testing.assert_array_equal(mocap_quat, [[1.0, 0.0, 0.0, 0.0]])
+
+  def test_state_without_mocap_is_not_forwarded(self):
+    self._sync()
+    sig = int(mujoco.mjtState.mjSTATE_QPOS)
+    self.viewer_endpoint.send_to_sim(
+        messages.StateEvent(state=self.data.qpos.copy(), state_sig=sig)
+    )
+    self._sync()
+    self.assertEmpty(self.backend.mocaps)
+
+  def test_mocap_state_for_another_model_is_dropped(self):
+    self._sync()
+    sig = int(mujoco.mjtState.mjSTATE_MOCAP_POS)
+    self.viewer_endpoint.send_to_sim(
+        messages.StateEvent(state=np.zeros(6), state_sig=sig)  # Two bodies.
+    )
+    self._sync()
+    self.assertEmpty(self.backend.mocaps)
 
   def test_instruction_is_forwarded(self):
     self.viewer_endpoint.send_to_sim(
