@@ -75,13 +75,9 @@ class DomainRandomizationResetterTest(absltest.TestCase):
 
     term = config.Term(
         func=model_randomization.randomize_field,
-        params={
-            "field": "geom_friction",
-            "pattern": "cart",
-            "noise": noise.Noise(
-                dist=noise.Uniform(low=0.1, high=0.9), op="replace"
-            ),
-        },
+        field="geom_friction",
+        pattern="cart",
+        noise=noise.Noise(dist=noise.Uniform(low=0.1, high=0.9), op="replace"),
     )
 
     res = resetter.DomainRandomizationResetter([term])
@@ -109,14 +105,10 @@ class DomainRandomizationResetterTest(absltest.TestCase):
 
     term = config.Term(
         func=model_randomization.randomize_field,
-        params={
-            "field": "geom_friction",
-            "pattern": "cart",
-            "noise": noise.Noise(
-                dist=noise.Uniform(low=0.1, high=0.9), op="replace"
-            ),
-            "trigger": "reset",
-        },
+        field="geom_friction",
+        pattern="cart",
+        noise=noise.Noise(dist=noise.Uniform(low=0.1, high=0.9), op="replace"),
+        trigger="reset",
     )
 
     res = resetter.DomainRandomizationResetter([term])
@@ -160,32 +152,24 @@ class DomainRandomizationResetterTest(absltest.TestCase):
 
     startup_term = config.Term(
         func=model_randomization.randomize_field,
-        params={
-            "field": "body_mass",
-            "pattern": "cart",
-            "noise": noise.Noise(
-                dist=noise.Uniform(low=2.0, high=2.0), op="scale"
-            ),
-            "trigger": "startup",
-        },
+        field="body_mass",
+        pattern="cart",
+        noise=noise.Noise(dist=noise.Uniform(low=2.0, high=2.0), op="scale"),
+        trigger="startup",
     )
     reset_term = config.Term(
         func=model_randomization.randomize_field,
-        params={
-            "field": "body_mass",
-            "pattern": "cart",
-            "noise": noise.Noise(
-                dist=noise.Uniform(low=0.5, high=0.5), op="add"
-            ),
-            "trigger": "reset",
-        },
+        field="body_mass",
+        pattern="cart",
+        noise=noise.Noise(dist=noise.Uniform(low=0.5, high=0.5), op="add"),
+        trigger="reset",
     )
 
     env = _create_env(
         resetters={
             "dr": config.Component(
-                component_type=resetter.DomainRandomizationResetter,
-                runtime_params={"terms": [startup_term, reset_term]},
+                resetter.DomainRandomizationResetter,
+                terms=[startup_term, reset_term],
             ),
         }
     )
@@ -237,49 +221,37 @@ class DomainRandomizationResetterTest(absltest.TestCase):
     dr1 = resetter.DomainRandomizationResetter([
         config.Term(
             func=model_randomization.randomize_field,
-            params={
-                "field": "body_mass",
-                "pattern": "cart",
-                "noise": noise.Noise(
-                    dist=noise.Uniform(low=2.0, high=2.0), op="scale"
-                ),
-                "trigger": "startup",
-            },
+            field="body_mass",
+            pattern="cart",
+            noise=noise.Noise(
+                dist=noise.Uniform(low=2.0, high=2.0), op="scale"
+            ),
+            trigger="startup",
         ),
         config.Term(
             func=model_randomization.randomize_field,
-            params={
-                "field": "body_mass",
-                "pattern": "cart",
-                "noise": noise.Noise(
-                    dist=noise.Uniform(low=0.5, high=0.5), op="add"
-                ),
-                "trigger": "reset",
-            },
+            field="body_mass",
+            pattern="cart",
+            noise=noise.Noise(dist=noise.Uniform(low=0.5, high=0.5), op="add"),
+            trigger="reset",
         ),
     ])
     dr2 = resetter.DomainRandomizationResetter([
         config.Term(
             func=model_randomization.randomize_field,
-            params={
-                "field": "body_mass",
-                "pattern": "cart",
-                "noise": noise.Noise(
-                    dist=noise.Uniform(low=1.0, high=1.0), op="add"
-                ),
-                "trigger": "startup",
-            },
+            field="body_mass",
+            pattern="cart",
+            noise=noise.Noise(dist=noise.Uniform(low=1.0, high=1.0), op="add"),
+            trigger="startup",
         ),
         config.Term(
             func=model_randomization.randomize_field,
-            params={
-                "field": "body_mass",
-                "pattern": "cart",
-                "noise": noise.Noise(
-                    dist=noise.Uniform(low=3.0, high=3.0), op="scale"
-                ),
-                "trigger": "reset",
-            },
+            field="body_mass",
+            pattern="cart",
+            noise=noise.Noise(
+                dist=noise.Uniform(low=3.0, high=3.0), op="scale"
+            ),
+            trigger="reset",
         ),
     ])
 
@@ -320,11 +292,13 @@ class DomainRandomizationResetterTest(absltest.TestCase):
     func_resetter = functional_reset.FunctionalEnvironmentReset([
         config.Term(
             func=set_startup,
-            params={"type": "startup", "scale": 1.5},
+            type="startup",
+            scale=1.5,
         ),
         config.Term(
             func=set_qpos,
-            params={"type": "reset", "value": 0.5},
+            type="reset",
+            value=0.5,
         ),
     ])
 
@@ -348,13 +322,13 @@ class DomainRandomizationResetterTest(absltest.TestCase):
   def test_functional_reset_invalid_term_type_raises(self):
     with self.assertRaisesRegex(ValueError, "Invalid reset term type: None"):
       functional_reset.FunctionalEnvironmentReset([
-          config.Term(func=lambda dc: None, params={}),
+          config.Term(lambda dc: None),
       ])
     with self.assertRaisesRegex(
         ValueError, "Invalid reset term type: 'invalid'"
     ):
       functional_reset.FunctionalEnvironmentReset([
-          config.Term(func=lambda dc: None, params={"type": "invalid"}),
+          config.Term(lambda dc: None, type="invalid"),
       ])
 
 

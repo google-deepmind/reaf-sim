@@ -91,9 +91,6 @@ class ContactSensorDevice(device.Device):
       objname: str | tuple[str, ...],
       reftype: ObjType | None = None,
       refname: str | None = None,
-      # TODO(b/564469814): Remove `fields` from `configure_spec` once legacy
-      # `build_params` callers migrate to passing it once in `__init__`.
-      fields: tuple[ContactField, ...] | None = None,
       reduce: ReduceMode = "none",
       num: int = 1,
   ) -> mujoco.MjSpec:
@@ -105,14 +102,11 @@ class ContactSensorDevice(device.Device):
       objname: Name(s) to match on obj side (exact or regex pattern).
       reftype: "geom", "body", or "xbody" (None = any).
       refname: Name to match on ref side (None = any).
-      fields: Which contact data to extract (all OR'd into one sensor). Defaults
-        to fields configured at initialization.
       reduce: Reduction mode for multiple contacts.
       num: How many contacts to report.
     """
     spec = super().configure_spec(spec)
-    if fields is None:
-      fields = self._fields
+    fields = self._fields
 
     mj_objtype = _OBJTYPE_MAP[objtype]
     obj_names = mujoco_types.resolve_names(spec, mj_objtype, objname)

@@ -36,8 +36,15 @@ class Term(Protocol):
 
   func: Callable[..., Any]
   params: dict[str, Any]
-  weight: float | None
   output_shape: tuple[int, ...] | None
+
+
+class RewardTerm(Protocol):
+  """Protocol for reward term objects with function, params, and weight."""
+
+  func: Callable[..., Any]
+  params: dict[str, Any]
+  weight: float
 
 
 class Impl(enum.Enum):

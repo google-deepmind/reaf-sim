@@ -36,15 +36,6 @@ from reaf.simulation.torch._src.builders.config import Sim
 
 _P = ParamSpec("_P")
 
-RESERVED_PARAM_KEYS = frozenset({
-    "bias",
-    "noise",
-    "scale",
-    "offset",
-    "clip",
-    "history_length",
-})
-
 
 def _feature(features: Mapping[str, Any], *, key: str) -> Any:
   """Extracts a named feature tensor from the features dict."""
@@ -53,48 +44,36 @@ def _feature(features: Mapping[str, Any], *, key: str) -> Any:
 
 @dataclass
 class Term:
-  """Universal term: function + params + optional fields.
-
-  For observation terms in ``FunctionalObservationAdapter``, reserved keys in
-  ``params`` (not forwarded to ``func``) are applied in order:
-  ``bias -> noise -> scale -> offset -> clip -> history_length``
-  (where ``bias`` and ``noise`` are only applied when the enclosing
-  ``ObsGroup`` has ``enable_noise=True``).
-  """
+  """Universal term: function + params."""
 
   func: Callable[..., Any]
   params: dict[str, Any] = field(default_factory=dict)
-
-  # optional fields
-  weight: float | None = None
   output_shape: tuple[int, ...] | None = None
-  dtype: Any = None
 
   def __init__(
       self,
       func: Callable[..., Any],
-      # TODO(b/564469814): Remove legacy `params=` dict once external callers
-      # migrate to passing function kwargs directly.
-      params: dict[str, Any] | None = None,
       *,
-      weight: float | None = None,
       output_shape: tuple[int, ...] | None = None,
-      dtype: Any = None,
-      **extra_params: Any,
+      **params: Any,
   ):
     self.func = func
-    merged: dict[str, Any] = {}
-    if params is not None:
-      merged.update(params)
-    merged.update(extra_params)
-    self.params = merged
-    self.weight = weight
+    self.params = dict(params)
     self.output_shape = output_shape
-    self.dtype = dtype
 
 
+@dataclass
 class Obs(Term):
   """Observation term with explicit post-processing modifiers and kwargs."""
+
+  bias: Any = None
+  noise: Any = None
+  scale: Any = None
+  offset: Any = None
+  clip: dict[str, Any] | None = None
+  history_length: int = 0
+  dtype: Any = None
+  output_shape: tuple[int, ...] | None = None
 
   @overload
   def __init__(self, key: str) -> None:
@@ -105,7 +84,7 @@ class Obs(Term):
       self,
       func: Callable[Concatenate[Any, _P], Any],
       *args: _P.args,
-      **kwargs: _P.kwargs,
+      **params: _P.kwargs,
   ) -> None:
     ...
 
@@ -113,19 +92,26 @@ class Obs(Term):
       self,
       func_or_key: Callable[..., Any] | str,
       *args: Any,
-      **kwargs: Any,
+      **params: Any,
   ):
     if args:
       raise TypeError("Obs() only accepts keyword arguments for `func`.")
     if isinstance(func_or_key, str):
-      if kwargs:
+      if params:
         raise TypeError(
             f"Obs({func_or_key!r}) does not accept keyword arguments; "
             "use .configure(...) for observation modifiers."
         )
       super().__init__(_feature, key=func_or_key)
     else:
-      super().__init__(func_or_key, params=dict(kwargs))
+      super().__init__(func_or_key, **params)
+    self.bias = None
+    self.noise = None
+    self.scale = None
+    self.offset = None
+    self.clip = None
+    self.history_length = 0
+    self.dtype = None
 
   def configure(
       self,
@@ -140,20 +126,18 @@ class Obs(Term):
       output_shape: tuple[int, ...] | None = None,
   ) -> Self:
     """Configures observation post-processing modifiers and metadata."""
-    # TODO(b/564469814): Store post-processing modifiers as explicit fields on
-    # `Obs` once legacy `Term(..., params={"noise": ...})` callers migrate.
     if bias is not None:
-      self.params["bias"] = bias
+      self.bias = bias
     if noise is not None:
-      self.params["noise"] = noise
+      self.noise = noise
     if scale is not None:
-      self.params["scale"] = scale
+      self.scale = scale
     if offset is not None:
-      self.params["offset"] = offset
+      self.offset = offset
     if clip is not None:
-      self.params["clip"] = clip
+      self.clip = clip
     if history_length > 0:
-      self.params["history_length"] = history_length
+      self.history_length = history_length
     if dtype is not None:
       self.dtype = dtype
     if output_shape is not None:
@@ -161,18 +145,21 @@ class Obs(Term):
     return self
 
 
+@dataclass
 class Reward(Term):
   """Reward term with explicit weight and kwargs."""
+
+  weight: float = 1.0
 
   def __init__(
       self,
       func: Callable[..., Any],
-      params: dict[str, Any] | None = None,
       *,
       weight: float = 1.0,
-      **extra_params: Any,
+      **params: Any,
   ):
-    super().__init__(func, params=params, weight=weight, **extra_params)
+    super().__init__(func, **params)
+    self.weight = weight
 
 
 @dataclass
@@ -182,27 +169,22 @@ class ObsGroup:
   per-episode bias and per-step noise).
   """
 
-  terms: dict[str, Term] = field(default_factory=dict)
+  terms: dict[str, Obs] = field(default_factory=dict)
   enable_noise: bool = False
 
   def __init__(
       self,
-      terms: Mapping[str, Term] | None = None,
+      terms: Mapping[str, Obs] | None = None,
       *,
       enable_noise: bool = False,
-      **named_terms: Term,
+      **named_terms: Obs,
   ):
-    merged: dict[str, Term] = {}
+    merged: dict[str, Obs] = {}
     if terms is not None:
       merged.update(terms)
     merged.update(named_terms)
     self.terms = merged
     self.enable_noise = enable_noise
-
-
-# TODO(b/564469814): Remove `TermGroup` alias once external callers migrate to
-# `ObsGroup`.
-TermGroup = ObsGroup
 
 
 _P_init = ParamSpec("_P_init")
@@ -234,9 +216,6 @@ class Component(Generic[_P_spec]):
 
   # Optional scene spec and attachment info; set via `attach(...)`.
   spec_fn: Callable[[], mujoco.MjSpec] | None = None
-  # TODO(b/572064329): Make `attachment_prefix` non-empty whenever `spec_fn` is
-  # set once legacy callers attaching specs with `attachment_prefix=""` migrate
-  # to `attach(...)`, which already rejects empty prefixes.
   attachment_prefix: str = ""
   attachment_site: str | None = None
   attachment_pos: tuple[float, float, float] | None = None
@@ -263,50 +242,22 @@ class Component(Generic[_P_spec]):
   ) -> None:
     ...
 
-  # TODO(b/564469814): Legacy overload kept for backwards compatibility with
-  # unmigrated external callers passing `build_params`/`runtime_params` dicts
-  # or `attachment_*` kwargs directly. Remove once external callers migrate to
-  # `Component(Cls, **runtime_kwargs).configure_spec(...).attach(...)`.
-  @overload
-  def __init__(
-      self: "Component[...]",
-      component_type: Any,
-      build_params: dict[str, Any] | None = None,
-      runtime_params: dict[str, Any] | None = None,
-      *,
-      spec_fn: Callable[[], mujoco.MjSpec] | None = None,
-      attachment_prefix: str = "",
-      attachment_site: str | None = None,
-      attachment_pos: tuple[float, float, float] | None = None,
-      attachment_quat: tuple[float, float, float, float] | None = None,
-  ) -> None:
-    ...
-
   def __init__(
       self,
       component_type: Any,
-      build_params: dict[str, Any] | None = None,
-      runtime_params: dict[str, Any] | None = None,
-      *,
-      spec_fn: Callable[[], mujoco.MjSpec] | None = None,
-      attachment_prefix: str = "",
-      attachment_site: str | None = None,
-      attachment_pos: tuple[float, float, float] | None = None,
-      attachment_quat: tuple[float, float, float, float] | None = None,
+      *args: Any,
       **runtime_kwargs: Any,
   ):
+    if args:
+      raise TypeError("Component() only accepts keyword arguments.")
     self.component_type = component_type
-    self.build_params = dict(build_params) if build_params is not None else {}
-    merged_runtime: dict[str, Any] = {}
-    if runtime_params is not None:
-      merged_runtime.update(runtime_params)
-    merged_runtime.update(runtime_kwargs)
-    self.runtime_params = merged_runtime
-    self.spec_fn = spec_fn
-    self.attachment_prefix = attachment_prefix
-    self.attachment_site = attachment_site
-    self.attachment_pos = attachment_pos
-    self.attachment_quat = attachment_quat
+    self.build_params = {}
+    self.runtime_params = dict(runtime_kwargs)
+    self.spec_fn = None
+    self.attachment_prefix = ""
+    self.attachment_site = None
+    self.attachment_pos = None
+    self.attachment_quat = None
     self.privileged = False
 
   def configure_spec(
@@ -330,8 +281,7 @@ class Component(Generic[_P_spec]):
     """Configures how this device's MjSpec attaches to the base scene."""
     if not prefix:
       raise ValueError(
-          f"{self.component_type.__name__}: attaching a spec requires a"
-          " non-empty prefix."
+          "prefix must be a non-empty string when attaching a spec."
       )
     self.spec_fn = spec_fn
     self.attachment_prefix = prefix
@@ -353,17 +303,12 @@ class Component(Generic[_P_spec]):
 class TaskLayer:
   """Task logic configuration."""
 
-  # TODO(b/564469814): Change `rewards` to `dict[str, Reward]` once external
-  # callers migrate off `Term`.
-  rewards: dict[str, Any] = field(default_factory=dict)
+  rewards: dict[str, Reward] = field(default_factory=dict)
   reward_provider: Component | None = None  # defaults to weighted sum
-  # TODO(b/564469814): Change `terminations`, `command_processors`,
-  # `feature_producers`, and `command_feature_producers` to `dict[str, ...]`
-  # with `default_factory=dict` once external callers migrate off `list`.
-  terminations: Any = field(default_factory=list)
-  command_processors: Any = field(default_factory=list)
-  feature_producers: Any = field(default_factory=list)
-  command_feature_producers: Any = field(default_factory=list)
+  terminations: dict[str, Term] = field(default_factory=dict)
+  command_processors: dict[str, Component] = field(default_factory=dict)
+  feature_producers: dict[str, Component] = field(default_factory=dict)
+  command_feature_producers: dict[str, Component] = field(default_factory=dict)
 
 
 @dataclass
@@ -371,11 +316,10 @@ class DeviceLayer:
   """Configuration for simulation devices."""
 
   devices: dict[str, Component] = field(default_factory=dict)
-  # TODO(b/564469814): Change `command_processors` and
-  # `substep_measurement_processors` to `dict[str, Component]` with
-  # `default_factory=dict` once external callers migrate off `list`.
-  command_processors: Any = field(default_factory=list)
-  substep_measurement_processors: Any = field(default_factory=list)
+  command_processors: dict[str, Component] = field(default_factory=dict)
+  substep_measurement_processors: dict[str, Component] = field(
+      default_factory=dict
+  )
 
 
 @dataclass
@@ -394,9 +338,7 @@ class Environment:
   action_space_adapter: core_action_space_adapter.ActionSpaceAdapter | None = (
       None
   )
-  # TODO(b/564469814): Change `observation_adapter` to `dict[str, ObsGroup]`
-  # once external callers remove `if cfg.observation_adapter is None:` checks.
-  observation_adapter: Any = field(default_factory=dict)
+  observation_adapter: dict[str, ObsGroup] = field(default_factory=dict)
 
   # The all-knowing sim Gods of the experiment.
   resetters: dict[str, Component] = field(default_factory=dict)

@@ -45,15 +45,15 @@ def _move_tensors_to_device(
 class FunctionalObservationAdapter(
     observation_space_adapter.ObservationSpaceAdapter
 ):
-  """Wraps a set of TermGroups as an ObservationSpaceAdapter.
+  """Wraps a set of ObsGroups as an ObservationSpaceAdapter.
 
-  Each observation ``Term`` is evaluated and post-processed in order:
+  Each observation ``Obs`` is evaluated and post-processed in order:
   ``func -> bias -> noise -> scale -> offset -> clip -> history``
 
   * ``bias`` — optional ``noise.Noise`` sampled once per episode on init/reset
-    (only applied when ``TermGroup.enable_noise=True``).
+    (only applied when ``ObsGroup.enable_noise=True``).
   * ``noise`` — optional ``noise.Noise`` sampled on every step
-    (only applied when ``TermGroup.enable_noise=True``).
+    (only applied when ``ObsGroup.enable_noise=True``).
   * ``scale`` — optional multiplicative factor.
   * ``offset`` — optional additive offset.
   * ``clip`` — optional ``{"min": ..., "max": ...}`` clamp bounds.
@@ -63,7 +63,7 @@ class FunctionalObservationAdapter(
   def __init__(
       self,
       *,
-      observations: dict[str, config.TermGroup],
+      observations: dict[str, config.ObsGroup],
       xpu_device: torch.device | str = "cpu",
       nworld: int = 1,
   ):
@@ -93,10 +93,10 @@ class FunctionalObservationAdapter(
         # Move parameters to device.
         term.params = _move_tensors_to_device(term.params, self._xpu_device)
 
-        scale = term.params.get("scale")
-        offset = term.params.get("offset")
-        clip = term.params.get("clip")
-        history_length = term.params.get("history_length", 0)
+        scale = term.scale
+        offset = term.offset
+        clip = term.clip
+        history_length = term.history_length
 
         term_dtype = term.dtype or "float32"
         torch_dtype = types.NUMPY_TO_TORCH_DTYPE.get(
@@ -169,12 +169,12 @@ class FunctionalObservationAdapter(
         # at the DeviceLayer level would make it impossible for the critic to access
         # privileged measurements.
         if term_group.enable_noise:
-          noise_config = term.params.get("noise")
+          noise_config = term.noise
           if noise_config is not None:
             self._modifiers[group_name][name] = noise_module.build_modifier(
                 noise_config, self._xpu_device
             )
-          bias_config = term.params.get("bias")
+          bias_config = term.bias
           if bias_config is not None:
             if nworld is None:
               raise ValueError(
@@ -209,7 +209,7 @@ class FunctionalObservationAdapter(
         # Single term: use its spec directly (preserves shape, e.g. HWC).
         self._specs[group_name] = next(iter(group_specs.values()))
       else:
-        raise ValueError(f"TermGroup '{group_name}' has no terms.")
+        raise ValueError(f"ObsGroup '{group_name}' has no terms.")
 
     # Per-env step counter since reset.
     if has_history:
@@ -258,12 +258,7 @@ class FunctionalObservationAdapter(
     for group_name, term_group in self._observations.items():
       group_obs = []
       for name, term in term_group.terms.items():
-        params = {
-            k: v
-            for k, v in term.params.items()
-            if k not in config.RESERVED_PARAM_KEYS
-        }
-        value = term.func(features, **params)
+        value = term.func(features, **term.params)
 
         if name in self._bias_buffers[group_name]:
           value = noise_module.apply_bias(

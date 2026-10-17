@@ -410,9 +410,7 @@ class RuntimeTest(absltest.TestCase):
     )
     dev.configure_spec(
         spec,
-        targets=["robot/t1"],
         mode="position",
-        transmission="tendon",
         stiffness=100.0,
     )
 

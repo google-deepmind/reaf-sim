@@ -15,8 +15,8 @@
 """Tests for FunctionalObservationAdapter, verifying observations and specs."""
 
 from absl.testing import absltest
-from reaf.simulation.torch._src.builders.flat_scene.config import Term
-from reaf.simulation.torch._src.builders.flat_scene.config import TermGroup
+from reaf.simulation.torch._src.builders.flat_scene.config import Obs
+from reaf.simulation.torch._src.builders.flat_scene.config import ObsGroup
 from reaf.simulation.torch._src.common import functional_observation
 from reaf.simulation.torch._src.common import math
 from reaf.simulation.torch._src.common import noise
@@ -28,30 +28,27 @@ class FunctionalObservationAdapterTest(absltest.TestCase):
   def test_observations_and_spec(self):
     provider = functional_observation.FunctionalObservationAdapter(
         observations={
-            "policy": TermGroup(
+            "policy": ObsGroup(
                 terms={
-                    "a": Term(
-                        func=lambda f, key: f[key],
-                        params={"key": "a"},
-                        output_shape=(3,),
-                        dtype="float32",
+                    "a": (
+                        Obs(
+                            "a"
+                        ).configure(output_shape=(3,), dtype="float32",)
                     ),
-                    "b": Term(
-                        func=lambda f, key: f[key],
-                        params={"key": "b"},
-                        output_shape=(2,),
-                        dtype="float32",
+                    "b": (
+                        Obs(
+                            "b"
+                        ).configure(output_shape=(2,), dtype="float32",)
                     ),
                 },
                 enable_noise=False,
             ),
-            "critic": TermGroup(
+            "critic": ObsGroup(
                 terms={
-                    "c": Term(
-                        func=lambda f, key: f[key],
-                        params={"key": "c"},
-                        output_shape=(5,),
-                        dtype="float32",
+                    "c": (
+                        Obs(
+                            "c"
+                        ).configure(output_shape=(5,), dtype="float32",)
                     )
                 },
                 enable_noise=False,
@@ -79,21 +76,15 @@ class FunctionalObservationAdapterTest(absltest.TestCase):
 
   def test_observations_with_noise(self):
     """Test that noise is applied when enable_noise=True."""
-    term_with_noise = Term(
-        func=lambda f, key: f[key],
-        params={
-            "key": "a",
-            "noise": noise.Noise(
-                dist=noise.Uniform(low=0.1, high=0.2),
-                op="add",
-            ),
-        },
+    term_with_noise = Obs("a").configure(
+        noise=noise.Noise(
+            dist=noise.Uniform(low=0.1, high=0.2),
+            op="add",
+        ),
         output_shape=(3,),
         dtype="float32",
     )
-    term_without_noise = Term(
-        func=lambda f, key: f[key],
-        params={"key": "a"},
+    term_without_noise = Obs("a").configure(
         output_shape=(3,),
         dtype="float32",
     )
@@ -101,7 +92,7 @@ class FunctionalObservationAdapterTest(absltest.TestCase):
     # 1. Noise enabled in group, term has noise -> should have noise
     provider_noisy = functional_observation.FunctionalObservationAdapter(
         observations={
-            "obs": TermGroup(
+            "obs": ObsGroup(
                 terms={"t": term_with_noise},
                 enable_noise=True,
             )
@@ -113,7 +104,7 @@ class FunctionalObservationAdapterTest(absltest.TestCase):
         functional_observation.FunctionalObservationAdapter(
             observations={
                 "obs": (
-                    TermGroup(
+                    ObsGroup(
                         terms={"t": term_with_noise},
                         enable_noise=False,
                     )
@@ -127,7 +118,7 @@ class FunctionalObservationAdapterTest(absltest.TestCase):
         functional_observation.FunctionalObservationAdapter(
             observations={
                 "obs": (
-                    TermGroup(
+                    ObsGroup(
                         terms={"t": term_without_noise},
                         enable_noise=True,
                     )
@@ -158,18 +149,16 @@ class FunctionalObservationAdapterTest(absltest.TestCase):
   def test_scale_offset_clip(self):
     provider = functional_observation.FunctionalObservationAdapter(
         observations={
-            "obs": TermGroup(
+            "obs": ObsGroup(
                 terms={
-                    "t": Term(
-                        func=lambda f, key: f[key],
-                        params={
-                            "key": "a",
-                            "scale": 2.0,
-                            "offset": -1.0,
-                            "clip": {"min": 0.0, "max": 0.5},
-                        },
-                        output_shape=(1,),
-                        dtype="float32",
+                    "t": (
+                        Obs("a").configure(
+                            scale=2.0,
+                            offset=-1.0,
+                            clip={"min": 0.0, "max": 0.5},
+                            output_shape=(1,),
+                            dtype="float32",
+                        )
                     )
                 },
                 enable_noise=False,
@@ -186,13 +175,14 @@ class FunctionalObservationAdapterTest(absltest.TestCase):
     nworld = 2
     provider = functional_observation.FunctionalObservationAdapter(
         observations={
-            "obs": TermGroup(
+            "obs": ObsGroup(
                 terms={
-                    "t": Term(
-                        func=lambda f, key: f[key],
-                        params={"key": "a", "history_length": 2},
-                        output_shape=(3,),
-                        dtype="float32",
+                    "t": (
+                        Obs("a").configure(
+                            history_length=2,
+                            output_shape=(3,),
+                            dtype="float32",
+                        )
                     )
                 },
                 enable_noise=False,
@@ -222,13 +212,14 @@ class FunctionalObservationAdapterTest(absltest.TestCase):
     nworld = 2
     provider = functional_observation.FunctionalObservationAdapter(
         observations={
-            "camera": TermGroup(
+            "camera": ObsGroup(
                 terms={
-                    "camera": Term(
-                        func=lambda f, key: f[key],
-                        params={"key": "rgb", "history_length": 2},
-                        output_shape=(3, 32, 32),
-                        dtype="float32",
+                    "camera": (
+                        Obs("rgb").configure(
+                            history_length=2,
+                            output_shape=(3, 32, 32),
+                            dtype="float32",
+                        )
                     )
                 },
                 enable_noise=False,
@@ -262,12 +253,13 @@ class FunctionalObservationAdapterTest(absltest.TestCase):
   def test_scale_vectorized(self):
     provider = functional_observation.FunctionalObservationAdapter(
         observations={
-            "obs": TermGroup(
+            "obs": ObsGroup(
                 terms={
-                    "t": Term(
-                        func=lambda f, key: f[key],
-                        params={"key": "a", "scale": [1.0, 2.0, 3.0]},
-                        output_shape=(3,),
+                    "t": (
+                        Obs("a").configure(
+                            scale=[1.0, 2.0, 3.0],
+                            output_shape=(3,),
+                        )
                     ),
                 },
                 enable_noise=False,
@@ -282,12 +274,12 @@ class FunctionalObservationAdapterTest(absltest.TestCase):
   def test_offset(self):
     provider = functional_observation.FunctionalObservationAdapter(
         observations={
-            "obs": TermGroup(
+            "obs": ObsGroup(
                 terms={
-                    "t": Term(
-                        func=lambda f, key: f[key],
-                        params={"key": "a", "offset": 0.5},
-                        output_shape=(3,),
+                    "t": (
+                        Obs(
+                            "a"
+                        ).configure(offset=0.5, output_shape=(3,),)
                     ),
                 },
                 enable_noise=False,
@@ -302,12 +294,13 @@ class FunctionalObservationAdapterTest(absltest.TestCase):
   def test_clip(self):
     provider = functional_observation.FunctionalObservationAdapter(
         observations={
-            "obs": TermGroup(
+            "obs": ObsGroup(
                 terms={
-                    "t": Term(
-                        func=lambda f, key: f[key],
-                        params={"key": "a", "clip": {"min": -1.0, "max": 1.0}},
-                        output_shape=(3,),
+                    "t": (
+                        Obs("a").configure(
+                            clip={"min": -1.0, "max": 1.0},
+                            output_shape=(3,),
+                        )
                     ),
                 },
                 enable_noise=False,
@@ -322,18 +315,16 @@ class FunctionalObservationAdapterTest(absltest.TestCase):
   def test_clip_vectorized(self):
     provider = functional_observation.FunctionalObservationAdapter(
         observations={
-            "obs": TermGroup(
+            "obs": ObsGroup(
                 terms={
-                    "t": Term(
-                        func=lambda f, key: f[key],
-                        params={
-                            "key": "a",
-                            "clip": {
+                    "t": (
+                        Obs("a").configure(
+                            clip={
                                 "min": [-1.0, -2.0, -3.0],
                                 "max": [1.0, 2.0, 3.0],
                             },
-                        },
-                        output_shape=(3,),
+                            output_shape=(3,),
+                        )
                     ),
                 },
                 enable_noise=False,
@@ -348,12 +339,12 @@ class FunctionalObservationAdapterTest(absltest.TestCase):
   def test_clip_max_only(self):
     provider = functional_observation.FunctionalObservationAdapter(
         observations={
-            "obs": TermGroup(
+            "obs": ObsGroup(
                 terms={
-                    "t": Term(
-                        func=lambda f, key: f[key],
-                        params={"key": "a", "clip": {"max": 1.0}},
-                        output_shape=(3,),
+                    "t": (
+                        Obs(
+                            "a"
+                        ).configure(clip={"max": 1.0}, output_shape=(3,),)
                     ),
                 },
                 enable_noise=False,
@@ -370,12 +361,12 @@ class FunctionalObservationAdapterTest(absltest.TestCase):
     nworld = 4
     provider = functional_observation.FunctionalObservationAdapter(
         observations={
-            "obs": TermGroup(
+            "obs": ObsGroup(
                 terms={
-                    "t": Term(
-                        func=lambda f, key: f[key],
-                        params={"key": "a", "history_length": 1},
-                        output_shape=(2,),
+                    "t": (
+                        Obs(
+                            "a"
+                        ).configure(history_length=1, output_shape=(2,),)
                     ),
                 },
                 enable_noise=False,
@@ -407,12 +398,12 @@ class FunctionalObservationAdapterTest(absltest.TestCase):
     """First obs after reset contains no zeros — history filled with current."""
     provider = functional_observation.FunctionalObservationAdapter(
         observations={
-            "obs": TermGroup(
+            "obs": ObsGroup(
                 terms={
-                    "t": Term(
-                        func=lambda f, key: f[key],
-                        params={"key": "a", "history_length": 2},
-                        output_shape=(2,),
+                    "t": (
+                        Obs(
+                            "a"
+                        ).configure(history_length=2, output_shape=(2,),)
                     )
                 },
                 enable_noise=False,
@@ -427,15 +418,15 @@ class FunctionalObservationAdapterTest(absltest.TestCase):
     torch.testing.assert_close(obs["obs"], torch.full((1, 6), 3.0))
 
   def test_plain_term_unchanged(self):
-    """Plain Term (no scale/clip/history) works exactly as before."""
+    """Plain Obs (no scale/clip/history) works as expected."""
     provider = functional_observation.FunctionalObservationAdapter(
         observations={
-            "obs": TermGroup(
+            "obs": ObsGroup(
                 terms={
-                    "t": Term(
-                        func=lambda f, key: f[key],
-                        params={"key": "a"},
-                        output_shape=(3,),
+                    "t": (
+                        Obs(
+                            "a"
+                        ).configure(output_shape=(3,),)
                     ),
                 },
                 enable_noise=False,
@@ -452,28 +443,27 @@ class FunctionalObservationAdapterTest(absltest.TestCase):
     nworld = 4
     low = torch.tensor([0.1, 1.0, 10.0])
     high = torch.tensor([0.2, 2.0, 20.0])
-    add_term = Term(
-        func=lambda f: f["a"],
-        params={
-            "bias": noise.Noise(dist=noise.Uniform(low=low, high=high)),
-            "scale": 2.0,
-        },
+    add_term = Obs(lambda f: f["a"]).configure(
+        bias=noise.Noise(dist=noise.Uniform(low=low, high=high)),
+        scale=2.0,
         output_shape=(3,),
     )
     provider = functional_observation.FunctionalObservationAdapter(
         observations={
-            "policy": TermGroup(terms={"t": add_term}, enable_noise=True),
-            "critic": TermGroup(terms={"t": add_term}, enable_noise=False),
-            "multi_1d": TermGroup(
+            "policy": ObsGroup(terms={"t": add_term}, enable_noise=True),
+            "critic": ObsGroup(terms={"t": add_term}, enable_noise=False),
+            "multi_1d": ObsGroup(
                 terms={
-                    "scalar": Term(
-                        func=lambda f: f["a"][:, 0],
-                        params={"bias": noise.uniform(2.0, 3.0, op="scale")},
-                        output_shape=(1,),
+                    "scalar": (
+                        Obs(lambda f: f["a"][:, 0]).configure(
+                            bias=noise.uniform(2.0, 3.0, op="scale"),
+                            output_shape=(1,),
+                        )
                     ),
-                    "vec": Term(
-                        func=lambda f: f["a"][:, 1:3],
-                        output_shape=(2,),
+                    "vec": (
+                        Obs(
+                            lambda f: f["a"][:, 1:3]
+                        ).configure(output_shape=(2,),)
                     ),
                 },
                 enable_noise=True,
@@ -522,7 +512,7 @@ class FunctionalObservationAdapterTest(absltest.TestCase):
     with self.assertRaisesRegex(ValueError, "nworld must be provided"):
       functional_observation.FunctionalObservationAdapter(
           observations={
-              "p": TermGroup(terms={"t": add_term}, enable_noise=True)
+              "p": ObsGroup(terms={"t": add_term}, enable_noise=True)
           },
           xpu_device="cpu",
           nworld=None,  # pyrefly: ignore[bad-argument-type]
@@ -533,47 +523,44 @@ class FunctionalObservationAdapterTest(absltest.TestCase):
     nworld = 4
     provider = functional_observation.FunctionalObservationAdapter(
         observations={
-            "quat": TermGroup(
+            "quat": ObsGroup(
                 terms={
-                    "t": Term(
-                        func=lambda f: f["q"],
-                        params={
-                            "bias": noise.Noise(
-                                dist=noise.SO3Uniform(low=-0.2, high=0.2)
-                            )
-                        },
-                        output_shape=(4,),
-                    )
-                },
-                enable_noise=True,
-            ),
-            "rot6d": TermGroup(
-                terms={
-                    "t": Term(
-                        func=lambda f: f["r6"],
-                        params={
-                            "bias": noise.Noise(
-                                dist=noise.SO3Gaussian(mean=0.0, std=0.1)
-                            )
-                        },
-                        output_shape=(6,),
-                    )
-                },
-                enable_noise=True,
-            ),
-            "quat_bias_plus_noise": TermGroup(
-                terms={
-                    "t": Term(
-                        func=lambda f: f["q"],
-                        params={
-                            "bias": noise.Noise(
+                    "t": (
+                        Obs(lambda f: f["q"]).configure(
+                            bias=noise.Noise(
                                 dist=noise.SO3Uniform(low=-0.2, high=0.2)
                             ),
-                            "noise": noise.Noise(
+                            output_shape=(4,),
+                        )
+                    )
+                },
+                enable_noise=True,
+            ),
+            "rot6d": ObsGroup(
+                terms={
+                    "t": (
+                        Obs(lambda f: f["r6"]).configure(
+                            bias=noise.Noise(
+                                dist=noise.SO3Gaussian(mean=0.0, std=0.1)
+                            ),
+                            output_shape=(6,),
+                        )
+                    )
+                },
+                enable_noise=True,
+            ),
+            "quat_bias_plus_noise": ObsGroup(
+                terms={
+                    "t": (
+                        Obs(lambda f: f["q"]).configure(
+                            bias=noise.Noise(
+                                dist=noise.SO3Uniform(low=-0.2, high=0.2)
+                            ),
+                            noise=noise.Noise(
                                 dist=noise.SO3Uniform(low=-0.02, high=0.02)
                             ),
-                        },
-                        output_shape=(4,),
+                            output_shape=(4,),
+                        )
                     )
                 },
                 enable_noise=True,

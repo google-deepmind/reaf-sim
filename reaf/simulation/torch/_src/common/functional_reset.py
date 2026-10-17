@@ -52,8 +52,8 @@ class FunctionalEnvironmentReset(reaf_environment.EnvironmentReset):
 
     reset = FunctionalEnvironmentReset(
         terms=[
-            Term(randomize_friction, {"type": "startup", "range": (0.3, 1.5)}),
-            Term(reset_robot, {"type": "reset", "entity": "robot"}),
+            Term(randomize_friction, type="startup", range=(0.3, 1.5)),
+            Term(reset_robot, type="reset", entity="robot"),
         ],
     )
   """

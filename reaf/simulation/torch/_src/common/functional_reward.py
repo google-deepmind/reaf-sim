@@ -21,6 +21,7 @@ from typing import TypedDict
 from dm_env import specs
 from reaf.simulation.torch._src.core import reward_provider
 from reaf.simulation.torch._src.core import types
+from reaf.simulation.torch._src.core.types import RewardTerm
 from reaf.simulation.torch._src.core.types import Term
 import torch
 
@@ -42,14 +43,14 @@ class FunctionalRewardProvider(reward_provider.RewardProvider):
       self,
       *,
       name: str,
-      terms: Mapping[str, "Term"],
+      terms: Mapping[str, "RewardTerm"],
       required_keys: list[str],
   ):
     """Initialize FunctionalRewardProvider.
 
     Args:
       name: Provider name.
-      terms: Dict mapping term names to Term objects with weight field.
+      terms: Dict mapping term names to RewardTerm objects with weight field.
       required_keys: Measurement keys required by the reward functions.
     """
     super().__init__()
@@ -65,10 +66,7 @@ class FunctionalRewardProvider(reward_provider.RewardProvider):
       self, device: torch.device, dtype: torch.dtype, dt: float = 1.0
   ) -> None:
     """Initialize weight tensor on device. Call before compute_reward."""
-    weights = [
-        self._terms[n].weight if self._terms[n].weight is not None else 1.0
-        for n in self._term_names
-    ]
+    weights = [self._terms[n].weight for n in self._term_names]
     self._weights = torch.tensor(weights, device=device, dtype=dtype)
     self._dtype = dtype
     self._dt = dt

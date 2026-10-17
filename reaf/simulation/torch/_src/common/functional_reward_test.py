@@ -14,22 +14,12 @@
 
 """Tests for FunctionalRewardProvider."""
 
-import dataclasses
-from typing import Any
-from typing import Callable
-
 from absl.testing import absltest
 import numpy as np
+from reaf.simulation.torch._src.builders.flat_scene.config import Reward
+from reaf.simulation.torch._src.builders.flat_scene.config import Term
 from reaf.simulation.torch._src.common import functional_reward
 import torch
-
-
-@dataclasses.dataclass
-class Term:
-  func: Callable[..., torch.Tensor]
-  params: dict[str, Any] = dataclasses.field(default_factory=dict)
-  weight: float | None = None
-  output_shape: tuple[int, ...] | None = None
 
 
 class FunctionalRewardProviderTest(absltest.TestCase):
@@ -38,16 +28,10 @@ class FunctionalRewardProviderTest(absltest.TestCase):
     provider = functional_reward.FunctionalRewardProvider(
         name="test",
         terms={
-            "a": Term(
-                func=lambda m, key: m[key], params={"key": "x"}, weight=1.0
-            ),
-            "b": Term(
-                func=lambda m, key: m[key], params={"key": "y"}, weight=2.0
-            ),
-            "c": Term(
-                func=lambda m, key: m[key], params={"key": "z"}, weight=0.0
-            ),
-            "d": Term(func=lambda m, key: m[key], params={"key": "w"}),
+            "a": Reward(lambda m, key: m[key], weight=1.0, key="x"),
+            "b": Reward(lambda m, key: m[key], weight=2.0, key="y"),
+            "c": Reward(lambda m, key: m[key], weight=0.0, key="z"),
+            "d": Reward(lambda m, key: m[key], key="w"),
         },
         required_keys=["x", "y", "z", "w"],
     )
@@ -93,11 +77,7 @@ class FunctionalRewardProviderTest(absltest.TestCase):
   def test_reward_spec_requires_initialize(self):
     provider = functional_reward.FunctionalRewardProvider(
         name="test",
-        terms={
-            "a": Term(
-                func=lambda m, key: m[key], params={"key": "x"}, weight=1.0
-            )
-        },
+        terms={"a": Reward(lambda m, key: m[key], weight=1.0, key="x")},
         required_keys=["x"],
     )
     with self.assertRaises(RuntimeError):
@@ -111,15 +91,9 @@ class FunctionalRewardProviderTest(absltest.TestCase):
     provider = functional_reward.FunctionalRewardProvider(
         name="test",
         terms={
-            "r1": Term(
-                func=lambda m, key: m[key], params={"key": "x"}, weight=2.0
-            ),
-            "r2": Term(
-                func=lambda m, key: m[key], params={"key": "y"}, weight=1.0
-            ),
-            "r_zero": Term(
-                func=lambda m, key: m[key], params={"key": "z"}, weight=0.0
-            ),
+            "r1": Reward(lambda m, key: m[key], weight=2.0, key="x"),
+            "r2": Reward(lambda m, key: m[key], weight=1.0, key="y"),
+            "r_zero": Reward(lambda m, key: m[key], weight=0.0, key="z"),
         },
         required_keys=["x", "y", "z"],
     )
@@ -157,7 +131,7 @@ class FunctionalRewardProviderTest(absltest.TestCase):
   def test_passthrough_returns_scalar_tensor(self):
     provider = functional_reward.PassthroughRewardProvider(
         name="test",
-        term=Term(func=lambda m, key: m[key], params={"key": "x"}),
+        term=Term(lambda m, key: m[key], key="x"),
         required_keys=["x"],
     )
     provider.initialize(device=torch.device("cpu"), dtype=torch.float32, dt=0.5)
@@ -170,7 +144,7 @@ class FunctionalRewardProviderTest(absltest.TestCase):
   def test_passthrough_batched(self):
     provider = functional_reward.PassthroughRewardProvider(
         name="test",
-        term=Term(func=lambda m, key: m[key], params={"key": "x"}),
+        term=Term(lambda m, key: m[key], key="x"),
         required_keys=["x"],
     )
     provider.initialize(device=torch.device("cpu"), dtype=torch.float32, dt=0.5)
@@ -181,7 +155,7 @@ class FunctionalRewardProviderTest(absltest.TestCase):
   def test_passthrough_reward_spec(self):
     provider = functional_reward.PassthroughRewardProvider(
         name="test",
-        term=Term(func=lambda m, key: m[key], params={"key": "x"}),
+        term=Term(lambda m, key: m[key], key="x"),
         required_keys=["x"],
     )
     provider.initialize(device=torch.device("cpu"), dtype=torch.float32, dt=0.5)
@@ -192,7 +166,7 @@ class FunctionalRewardProviderTest(absltest.TestCase):
   def test_passthrough_requires_initialize(self):
     provider = functional_reward.PassthroughRewardProvider(
         name="test",
-        term=Term(func=lambda m, key: m[key], params={"key": "x"}),
+        term=Term(lambda m, key: m[key], key="x"),
         required_keys=["x"],
     )
     with self.assertRaises(RuntimeError):
@@ -203,7 +177,7 @@ class FunctionalRewardProviderTest(absltest.TestCase):
   def test_passthrough_nan_and_inf_rewards_are_sanitized(self):
     provider = functional_reward.PassthroughRewardProvider(
         name="test",
-        term=Term(func=lambda m, key: m[key], params={"key": "x"}),
+        term=Term(lambda m, key: m[key], key="x"),
         required_keys=["x"],
     )
     provider.initialize(device=torch.device("cpu"), dtype=torch.float32, dt=0.5)

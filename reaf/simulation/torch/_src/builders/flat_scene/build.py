@@ -64,30 +64,6 @@ def _instantiate_component(
   return component_type(**params)
 
 
-# TODO(b/564469814): Legacy helper for backwards compatibility with external
-# callers still passing `list[Component]` instead of `dict[str, Component]`.
-# Remove once all callers migrate to `dict`.
-def _iter_components(
-    components: Mapping[str, config.Component] | Sequence[config.Component],
-) -> list[tuple[str | None, config.Component]]:
-  """Returns (optional_name, component) pairs from a dict or sequence."""
-  if isinstance(components, Mapping):
-    return list(components.items())
-  return [(None, c) for c in components]
-
-
-# TODO(b/564469814): Legacy helper for backwards compatibility with external
-# callers still passing `list[Term]` instead of `dict[str, Term]`. Remove once
-# all callers migrate to `dict`.
-def _iter_terms(
-    terms: Mapping[str, config.Term] | Sequence[config.Term],
-) -> list[config.Term]:
-  """Returns Terms from a dict or sequence."""
-  if isinstance(terms, Mapping):
-    return list(terms.values())
-  return list(terms)
-
-
 def _move_tensors_to_device(
     params: dict[str, Any], device: str
 ) -> dict[str, Any]:
@@ -123,8 +99,12 @@ def _wrap_method_for_float32(obj, method_name: str, cast_output: bool = False):
 
 def _attachment_prefix(component: config.Component) -> str:
   """The prefix a device's MJCF gets when it is attached to the arena."""
-  prefix = component.attachment_prefix or ""
-  if prefix and not prefix.endswith("/"):
+  prefix = component.attachment_prefix
+  if not prefix:
+    raise ValueError(
+        "attachment_prefix must be a non-empty string when spec_fn is set."
+    )
+  if not prefix.endswith("/"):
     prefix += "/"
   return prefix
 
@@ -151,15 +131,7 @@ def make_deployment_config(
   task_layer = copy.deepcopy(env_config.task_layer)
   task_layer.reward_provider = None
   task_layer.rewards = {}
-  task_layer.terminations = (
-      {} if isinstance(task_layer.terminations, Mapping) else []
-  )
-
-  if not isinstance(env_config.observation_adapter, dict):
-    raise ValueError(
-        "Expected observation_adapter to be a dict of term groups, got"
-        f" {type(env_config.observation_adapter)}"
-    )
+  task_layer.terminations = {}
 
   observation_adapter = {}
   for group in observation_groups:
@@ -167,18 +139,9 @@ def make_deployment_config(
     term_group.enable_noise = False
     observation_adapter[group] = term_group
 
-  # TODO(b/572064329): Assume `task_layer.feature_producers` is always a `dict`
-  # once external callers migrate off `list[Component]`.
-  if isinstance(task_layer.feature_producers, Mapping):
-    task_layer.feature_producers = {
-        k: c
-        for k, c in task_layer.feature_producers.items()
-        if not c.privileged
-    }
-  else:
-    task_layer.feature_producers = [
-        c for c in task_layer.feature_producers if not c.privileged
-    ]
+  task_layer.feature_producers = {
+      k: c for k, c in task_layer.feature_producers.items() if not c.privileged
+  }
 
   sim = copy.deepcopy(env_config.sim)
   sim.nworld = 1
@@ -248,7 +211,7 @@ def build_device_layer(
 
   # Instantiate substep commands processors (sim only)
   substep_commands_processors = []
-  for name, c in _iter_components(env_config.device_layer.command_processors):
+  for name, c in env_config.device_layer.command_processors.items():
     processor = _instantiate_component(
         c.component_type,
         c.runtime_params,
@@ -261,9 +224,10 @@ def build_device_layer(
 
   # Instantiate substep measurements processors (sim only)
   substep_measurements_processors = []
-  for name, c in _iter_components(
-      env_config.device_layer.substep_measurement_processors
-  ):
+  for (
+      name,
+      c,
+  ) in env_config.device_layer.substep_measurement_processors.items():
     processor = _instantiate_component(
         c.component_type,
         c.runtime_params,
@@ -305,20 +269,16 @@ def build_task_layer(
   xpu_device = env_config.sim.xpu_device
   impl = types.Impl(env_config.sim.impl)
 
-  termination_terms = _iter_terms(env_config.task_layer.terminations)
+  termination_terms = list(env_config.task_layer.terminations.values())
   for term in env_config.task_layer.rewards.values():
     term.params = _move_tensors_to_device(term.params, xpu_device)
   for term in termination_terms:
     term.params = _move_tensors_to_device(term.params, xpu_device)
-  for _, component in _iter_components(
-      env_config.task_layer.command_processors
-  ):
+  for component in env_config.task_layer.command_processors.values():
     component.runtime_params = _move_tensors_to_device(
         component.runtime_params, xpu_device
     )
-  for _, component in _iter_components(
-      env_config.task_layer.command_feature_producers
-  ):
+  for component in env_config.task_layer.command_feature_producers.values():
     component.runtime_params = _move_tensors_to_device(
         component.runtime_params, xpu_device
     )
@@ -326,9 +286,7 @@ def build_task_layer(
   # Commands and features, can be shared between real and sim.
   command_processors = []
   feature_producers = []
-  for name, c in _iter_components(
-      env_config.task_layer.command_feature_producers
-  ):
+  for name, c in env_config.task_layer.command_feature_producers.items():
     instance = _instantiate_component(
         c.component_type,
         c.runtime_params,
@@ -338,7 +296,7 @@ def build_task_layer(
     )
     command_processors.append(instance)
     feature_producers.append(instance)
-  for name, c in _iter_components(env_config.task_layer.command_processors):
+  for name, c in env_config.task_layer.command_processors.items():
     command_processors.append(
         _instantiate_component(
             c.component_type,
@@ -348,7 +306,7 @@ def build_task_layer(
             name=name,
         )
     )
-  for name, c in _iter_components(env_config.task_layer.feature_producers):
+  for name, c in env_config.task_layer.feature_producers.items():
     producer = _instantiate_component(
         c.component_type,
         c.runtime_params,
@@ -393,7 +351,7 @@ def build_task_layer(
   elif env_config.task_layer.rewards:
     reward_provider = functional_reward.FunctionalRewardProvider(
         name="rewards",
-        terms=env_config.task_layer.rewards,  # pyrefly: ignore[bad-argument-type]
+        terms=env_config.task_layer.rewards,
         required_keys=[],  # not required for reaf-sim
     )
 
@@ -436,30 +394,13 @@ def build_env(
 
   # Observations, can be shared between real and sim.
   # TODO(btaba): consider moving observations into the task layer instead.
-  observation_adapter = env_config.observation_adapter
-  if observation_adapter is None:
-    observation_provider = None
-  elif isinstance(observation_adapter, config.Component):
-    component = observation_adapter
-    component.runtime_params = _move_tensors_to_device(
-        component.runtime_params, xpu_device
-    )
-    component.build_params = _move_tensors_to_device(
-        component.build_params, xpu_device
-    )
-    observation_provider = component.component_type(**component.runtime_params)
-  elif isinstance(observation_adapter, dict):
-    observation_provider = functional_observation.FunctionalObservationAdapter(
-        observations=observation_adapter,
-        xpu_device=xpu_device,
-        nworld=nworld,
-    )
-  else:
-    raise ValueError(
-        f"Invalid observation_adapter type: {type(observation_adapter)}"
-    )
+  observation_provider = functional_observation.FunctionalObservationAdapter(
+      observations=env_config.observation_adapter,
+      xpu_device=xpu_device,
+      nworld=nworld,
+  )
 
-  if observation_provider is not None and impl == types.Impl.CPP:
+  if impl == types.Impl.CPP:
     _wrap_method_for_float32(
         observation_provider, "observations_from_features", cast_output=True
     )

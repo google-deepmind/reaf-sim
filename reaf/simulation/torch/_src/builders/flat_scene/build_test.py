@@ -45,14 +45,16 @@ class BuildTest(absltest.TestCase):
         sim=builders_config.Sim(xpu_device="cpu", impl="cpp"),
         device_layer=config.DeviceLayer(
             devices={
-                "my_device": config.Component(
-                    component_type=clock_device.ClockDevice,
-                    spec_fn=lambda: device_spec,
-                    attachment_site="attachment_site",
-                    runtime_params={
-                        "name": "my_device",
-                        "time_output_name": "time",
-                    },
+                "my_device": (
+                    config.Component(
+                        clock_device.ClockDevice,
+                        name="my_device",
+                        time_output_name="time",
+                    ).attach(
+                        lambda: device_spec,
+                        prefix="my_device/",
+                        site="attachment_site",
+                    )
                 )
             },
         ),
@@ -66,7 +68,7 @@ class BuildTest(absltest.TestCase):
     # Check if the device's geom exists in the compiled model
     mj_model = env.device_layer.sim.mj_model
     geom_names = [mj_model.geom(i).name for i in range(mj_model.ngeom)]
-    self.assertIn("box", geom_names)
+    self.assertIn("my_device/box", geom_names)
 
   def test_build_env_with_nvmax_non_warp_raises_error(self):
     base_spec = mujoco.MjSpec()
@@ -159,9 +161,7 @@ class BuildTest(absltest.TestCase):
     env_config = config.Environment(
         base_scene=base_spec,
         sim=builders_config.Sim(xpu_device="cpu", impl="cpp"),
-        resetters={
-            "counter": config.Component(component_type=CountingResetter)
-        },
+        resetters={"counter": config.Component(CountingResetter)},
     )
     build.build_env(env_config)
     self.assertEqual(CountingResetter.startups, 1)
@@ -174,27 +174,25 @@ class MakeDeploymentConfigTest(absltest.TestCase):
     base_spec.worldbody.add_geom(
         type=mujoco.mjtGeom.mjGEOM_PLANE, size=[1, 1, 1]
     )
-    term = config.Term(func=lambda: None)
+    obs = config.Obs(lambda features: None)
     return config.Environment(
         base_scene=base_spec,
         task_layer=config.TaskLayer(
-            rewards={"reach": term},
-            reward_provider=config.Component(component_type=object),
-            terminations=[term],
+            rewards={"reach": config.Reward(lambda: None)},
+            reward_provider=config.Component(object),
+            terminations={"timeout": config.Term(lambda: None)},
             feature_producers={
-                "policy_producer": config.Component(component_type=object),
+                "policy_producer": config.Component(object),
                 "privileged_producer": (
-                    config.Component(component_type=object).mark_privileged()
+                    config.Component(object).mark_privileged()
                 ),
             },
         ),
         observation_adapter={
-            "policy": config.TermGroup(
-                terms={"joints": term}, enable_noise=True
-            ),
-            "privileged": config.TermGroup(terms={"cube_pos": term}),
+            "policy": config.ObsGroup(terms={"joints": obs}, enable_noise=True),
+            "privileged": config.ObsGroup(terms={"cube_pos": obs}),
         },
-        resetters={"randomize": config.Component(component_type=object)},
+        resetters={"randomize": config.Component(object)},
         sim=builders_config.Sim(xpu_device="cpu", impl="cpp", nworld=4096),
     )
 
@@ -216,7 +214,6 @@ class MakeDeploymentConfigTest(absltest.TestCase):
     self.assertEqual(list(deploy_config.resetters), ["randomize"])
 
     # Only the groups the policy consumes survive, without their noise.
-    self.assertIsInstance(deploy_config.observation_adapter, dict)
     self.assertEqual(list(deploy_config.observation_adapter), ["policy"])
     self.assertFalse(deploy_config.observation_adapter["policy"].enable_noise)
 
@@ -234,7 +231,6 @@ class MakeDeploymentConfigTest(absltest.TestCase):
         ["policy_producer", "privileged_producer"],
     )
     self.assertEqual(env_config.sim.nworld, 4096)
-    self.assertIsInstance(env_config.observation_adapter, dict)
     self.assertTrue(env_config.observation_adapter["policy"].enable_noise)
 
 
@@ -250,6 +246,11 @@ class ConfigTest(absltest.TestCase):
     comp = config.Component(clock_device.ClockDevice)
     with self.assertRaises(TypeError):
       comp.configure_spec(123)  # pyrefly: ignore[bad-argument-count]
+
+  def test_component_attach_requires_non_empty_prefix(self):
+    comp = config.Component(clock_device.ClockDevice)
+    with self.assertRaises(ValueError):
+      comp.attach(mujoco.MjSpec, prefix="")
 
 
 if __name__ == "__main__":

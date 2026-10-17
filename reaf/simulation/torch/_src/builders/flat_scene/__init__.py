@@ -16,8 +16,6 @@
 
 from reaf.simulation.torch._src.builders.config import apply_sim_config
 from reaf.simulation.torch._src.builders.config import Sim
-from reaf.simulation.torch._src.builders.flat_scene import build as build
-from reaf.simulation.torch._src.builders.flat_scene import config as config
 from reaf.simulation.torch._src.builders.flat_scene.build import build_device_layer
 from reaf.simulation.torch._src.builders.flat_scene.build import build_env
 from reaf.simulation.torch._src.builders.flat_scene.build import build_scene
@@ -28,8 +26,6 @@ from reaf.simulation.torch._src.builders.flat_scene.config import DeviceLayer
 from reaf.simulation.torch._src.builders.flat_scene.config import Environment
 from reaf.simulation.torch._src.builders.flat_scene.config import Obs
 from reaf.simulation.torch._src.builders.flat_scene.config import ObsGroup
-from reaf.simulation.torch._src.builders.flat_scene.config import RESERVED_PARAM_KEYS
 from reaf.simulation.torch._src.builders.flat_scene.config import Reward
 from reaf.simulation.torch._src.builders.flat_scene.config import TaskLayer
 from reaf.simulation.torch._src.builders.flat_scene.config import Term
-from reaf.simulation.torch._src.builders.flat_scene.config import TermGroup

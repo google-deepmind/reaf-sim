@@ -45,12 +45,7 @@ class ActuatorDevice(device.Device):
       self,
       spec: mujoco.MjSpec,
       *,
-      # TODO(b/564469814): Remove `targets` and `transmission` from
-      # `configure_spec` once legacy `build_params` callers migrate to passing
-      # them once in `ActuatorDevice.__init__`.
-      targets: list[str] | None = None,
       mode: ControlMode = "position",
-      transmission: TransmissionType | None = None,
       stiffness: dict[str, float] | float = 100.0,
       damping: dict[str, float] | float = 10.0,
       forcerange: dict[str, float] | float | None = 30.0,
@@ -66,11 +61,7 @@ class ActuatorDevice(device.Device):
 
     Args:
       spec: The MjSpec to modify.
-      targets: Names of joints/tendons/sites to actuate. Defaults to targets
-        configured at initialization.
       mode: Control mode - "position", "velocity", "motor", or mujoco.mjtGain.*.
-      transmission: Transmission - "joint", "tendon", "site", or
-        mujoco.mjtTrn.*. Defaults to transmission configured at initialization.
       stiffness: PD stiffness (kp). Only used for position mode.
       damping: PD damping (kd). Used for position and velocity modes.
       forcerange: Max actuator force. None = no limit.
@@ -87,10 +78,8 @@ class ActuatorDevice(device.Device):
         and other parameters defined in the XML.
     """
     spec = super().configure_spec(spec)
-    if targets is None:
-      targets = self._target_names
-    if transmission is None:
-      transmission = self._transmission
+    targets = self._target_names
+    transmission = self._transmission
     trntype = _TRNTYPE_MAP[transmission]
 
     for target_name in targets:

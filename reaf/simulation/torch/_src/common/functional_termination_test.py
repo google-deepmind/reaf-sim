@@ -14,11 +14,8 @@
 
 """Tests for FunctionalTerminationChecker."""
 
-import dataclasses
-from typing import Any
-from typing import Callable
-
 from absl.testing import absltest
+from reaf.simulation.torch._src.builders.flat_scene.config import Term
 from reaf.simulation.torch._src.common import functional_termination
 from reaf.simulation.torch._src.core import termination_checker
 import torch
@@ -28,14 +25,6 @@ R = termination_checker.TerminationResult.TRUNCATE
 N = termination_checker.TerminationResult.DO_NOT_TERMINATE
 
 
-@dataclasses.dataclass
-class Term:
-  func: Callable[..., torch.Tensor]
-  params: dict[str, Any] = dataclasses.field(default_factory=dict)
-  weight: float | None = None
-  output_shape: tuple[int, ...] | None = None
-
-
 class FunctionalTerminationCheckerTest(absltest.TestCase):
 
   def test_terminate_and_truncate(self):
@@ -43,12 +32,12 @@ class FunctionalTerminationCheckerTest(absltest.TestCase):
         name="test",
         terms=[
             Term(
-                func=lambda m, key: torch.where(m[key], T, N),
-                params={"key": "bad_contact"},
+                lambda m, key: torch.where(m[key], T, N),
+                key="bad_contact",
             ),
             Term(
-                func=lambda m, key: torch.where(m[key], R, N),
-                params={"key": "timeout"},
+                lambda m, key: torch.where(m[key], R, N),
+                key="timeout",
             ),
         ],
         required_keys=["bad_contact", "timeout"],
