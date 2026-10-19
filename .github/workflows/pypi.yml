@@ -13,13 +13,14 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # Needed to create releases
+      id-token: write # Needed for PyPI Trusted Publishing
 
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
-      - name: Set up Python
-        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - name: Set up uv and Python
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
         with:
           python-version: "3.12"
       - name: Get release version
@@ -37,14 +38,7 @@ jobs:
             --title "${TAG_NAME}" \
             --notes "See the [changelog](https://reaf-sim.readthedocs.io/en/${VERSION}/changelog.html)."
 
-      - name: Install dependencies
-        run: |
-          pip install uv
-          uv pip install --system build twine
       - name: Build and publish
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
         run: |
-          python -m build
-          twine upload dist/*
+          uv build
+          uv publish
