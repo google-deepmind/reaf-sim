@@ -76,24 +76,17 @@ SET_CONST_0_OUTPUT_FIELDS: frozenset[str] = frozenset({
     "light_poscom0",
     "light_dir0",
     "actuator_acc0",
-    "actuator_biasprm",
     "eq_data",
-})
-# Model fields that are the outputs of mjw.set_const_spring.
-SET_CONST_SPRING_OUTPUT_FIELDS: frozenset[str] = frozenset({
-    "tendon_lengthspring",
 })
 # Model fields that are the outputs of mjw.set_const.
 SET_CONST_OUTPUT_FIELDS: frozenset[str] = (
     SET_CONST_FIXED_OUTPUT_FIELDS
     | SET_CONST_0_OUTPUT_FIELDS
-    | SET_CONST_SPRING_OUTPUT_FIELDS
 )
 
 
 SET_CONST_INPUT_LEVELS: dict[str, SetConstLevel] = {
     # go/keep-sorted start
-    "actuator_gainprm": SetConstLevel.STAGE_0,
     "actuator_gear": SetConstLevel.STAGE_0,
     "body_inertia": SetConstLevel.STAGE_0,
     "body_ipos": SetConstLevel.STAGE_0,

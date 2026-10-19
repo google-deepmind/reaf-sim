@@ -425,7 +425,7 @@ class RandomizeFieldTest(absltest.TestCase):
         kd_noise=noise.Noise(dist=noise.Uniform(low=0.5, high=1.5), op="scale"),
     )
     self.assertEqual(
-        self.model.pending_set_const, torch_wrapper.SetConstLevel.STAGE_0
+        self.model.pending_set_const, torch_wrapper.SetConstLevel.NONE
     )
 
     new_gainprm = self.model.actuator_gainprm[:]
