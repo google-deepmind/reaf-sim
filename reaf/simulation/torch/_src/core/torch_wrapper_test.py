@@ -15,6 +15,7 @@
 
 import dataclasses
 from typing import Any
+from unittest import mock
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -1652,6 +1653,17 @@ class TorchWrapperSetConstTrackingTest(parameterized.TestCase):
     )
     model.restore_defaults(mask)
     torch.testing.assert_close(model.geom_conaffinity[0], initial)
+
+  def test_restore_defaults_cpu_does_not_use_cuda_stream(self):
+    model = self._model(types.Impl.CPP)
+    initial_mass = model.body_mass[:, 1].clone()
+    model.body_mass[:, 1] = 10.0
+
+    with mock.patch.object(torch.cuda, "stream") as mock_stream:
+      model.restore_defaults(torch.tensor([True]))
+      mock_stream.assert_not_called()
+
+    torch.testing.assert_close(model.body_mass[:, 1], initial_mass)
 
 
 if __name__ == "__main__":

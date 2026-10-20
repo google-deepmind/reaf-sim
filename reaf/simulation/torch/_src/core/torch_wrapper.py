@@ -19,6 +19,7 @@ the wrapper tracks the writes and marks the required `SetConstLevel` on
 these pending constants via `Simulator.set_const()` before a forward call.
 """
 
+import contextlib
 import dataclasses
 import enum
 import functools
@@ -597,7 +598,13 @@ class TorchWrapper(Generic[T], NoSetAttr):
       tensor = getattr(self, field)
       target = tensor._tensor  # pylint: disable=protected-access
       stream = tensor._get_torch_stream()  # pylint: disable=protected-access
-      with torch.cuda.stream(stream):
+      # Avoid `torch.cuda.stream(None)`, which raises on MPS (macOS) devices.
+      ctx = (
+          torch.cuda.stream(stream)
+          if stream is not None
+          else contextlib.nullcontext()
+      )
+      with ctx:
         if model_fields[field].is_batch:
           mask = env_mask.view(-1, *([1] * (saved.ndim - 1)))
           torch.where(mask, saved, target, out=target)
