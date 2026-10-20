@@ -77,8 +77,31 @@ def launch(
     auto_reset: bool = True,
     initial_instruction: str | None = None,
     plugins: Iterable[plugin.Plugin] | None = None,
+    hot_reload: str = '',
 ) -> None:
-  """Launches a viewer for a reaf-sim environment."""
+  """Launches a viewer for a reaf-sim environment.
+
+  Args:
+    environment: The reaf-sim environment to visualize.
+    policy: An optional policy to execute. If None, use a zero-action policy.
+    simulator: The physics simulator. If None, infer from ``environment``.
+    step_duration: Optional desired duration of each step in seconds.
+    reward_plot_keys: The reward plot legends to show, in order. Nested reward
+      dict keys are joined with '/' and vector entries are indexed, e.g.
+      ``terms/height`` or ``[0]``. If ``None``, all rewards are plotted.
+    loggers: Optional iterable of ``EpisodicLogger`` to log episode data.
+    main_world_id: Index of the world to visualize in the viewer.
+    gfx: Graphics mode for the viewer (e.g. 'classic_headless', 'web').
+    http_port: Web Viewer port (0 picks first free port >= 8080).
+    auto_reset: If True (default), the environment automatically resets when an
+      episode ends. If False, the viewer pauses instead, allowing inspection of
+      the final state. The user can still manually reset with backspace.
+    initial_instruction: Optional initial instruction to send to the viewer.
+    plugins: Optional viewer and sim plugins.
+    hot_reload: What is reloaded when modified. Options are '', 'plugins',
+      'all', 'Plugin1,Plugin2,...'. Default is '', meaning nothing. See
+      ``mujoco.experimental.studio.hot_reload``.
+  """
   if simulator is None:
     if isinstance(environment, environment_module.Environment):
       simulator = environment.device_layer.sim
@@ -138,6 +161,7 @@ def launch(
       gfx=gfx,
       http_port=http_port,
       open_browser=True,
+      hot_reload=hot_reload,
   )
 
   # Launch the viewer using the studio launch API. Errors from sim plugins,
