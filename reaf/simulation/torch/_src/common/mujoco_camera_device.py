@@ -88,7 +88,7 @@ class MujocoCameraDevice(device.Device):
       camera_name: str,
       width: int,
       height: int,
-      render_rate_hz: float,
+      render_rate_hz: float | None,
       delay_ms: float = 0.0,
       scene_option: mujoco.MjvOption | None = None,
       render_mode: RenderMode = RenderMode.RGB,
@@ -105,7 +105,9 @@ class MujocoCameraDevice(device.Device):
       camera_name: Name of the camera to use for rendering.
       width: Width of the rendered image.
       height: Height of the rendered image.
-      render_rate_hz: Camera rendering rate in Hz. Must be positive.
+      render_rate_hz: Camera rendering rate in Hz, or None to render only the
+        first measurement after each reset, whose frame later measurements
+        return until the next reset. Must be positive if set.
       delay_ms: Latency in milliseconds by which the rendered image lags the
         current physics state. 0.0 (default) means the current state is rendered
         (no delay and no overhead). When > 0, the device records qpos at each
@@ -131,8 +133,10 @@ class MujocoCameraDevice(device.Device):
       output_name_segmentation: Name of the segmentation output.
     """
 
-    if render_rate_hz <= 0:
-      raise ValueError(f'render_rate_hz must be positive, got {render_rate_hz}')
+    if render_rate_hz is not None and render_rate_hz <= 0:
+      raise ValueError(
+          f'render_rate_hz must be positive or None, got {render_rate_hz}'
+      )
 
     if delay_ms < 0:
       raise ValueError(f'delay_ms must be non-negative, got {delay_ms}')
@@ -231,22 +235,23 @@ class MujocoCameraDevice(device.Device):
   def initialize(self, simulator: simulator_module.Simulator) -> None:
     """Initializes the entity with compiled model and data."""
     sim_dt = simulator.clock.sim_dt
-    desired_period = 1.0 / self._render_rate_hz
-    self._update_interval_in_substeps = max(1, round(desired_period / sim_dt))
-    actual_period = self._update_interval_in_substeps * sim_dt
-    if not math.isclose(
-        actual_period, desired_period, rel_tol=1e-6, abs_tol=1e-9
-    ):
-      _logger.warning(
-          'Desired render_rate_hz=%g (period %.6fs) is not an integer multiple'
-          ' of sim_dt=%.6fs; discretizing to %d substeps (actual render rate'
-          ' %.2f Hz).',
-          self._render_rate_hz,
-          desired_period,
-          sim_dt,
-          self._update_interval_in_substeps,
-          1.0 / actual_period,
-      )
+    if self._render_rate_hz is not None:
+      desired_period = 1.0 / self._render_rate_hz
+      self._update_interval_in_substeps = max(1, round(desired_period / sim_dt))
+      actual_period = self._update_interval_in_substeps * sim_dt
+      if not math.isclose(
+          actual_period, desired_period, rel_tol=1e-6, abs_tol=1e-9
+      ):
+        _logger.warning(
+            'Desired render_rate_hz=%g (period %.6fs) is not an integer'
+            ' multiple of sim_dt=%.6fs; discretizing to %d substeps (actual'
+            ' render rate %.2f Hz).',
+            self._render_rate_hz,
+            desired_period,
+            sim_dt,
+            self._update_interval_in_substeps,
+            1.0 / actual_period,
+        )
 
     if self._delay_ms > 0:
       desired_delay_s = self._delay_ms / 1000.0
@@ -368,7 +373,8 @@ class MujocoCameraDevice(device.Device):
       self._last_recorded_substep = global_substep
 
     if not self._last_measurements or (
-        self._last_rendered_substep != global_substep
+        self._render_rate_hz is not None
+        and self._last_rendered_substep != global_substep
         and (global_substep % self._update_interval_in_substeps) == 0
     ):
       self._last_measurements = self._render(data)

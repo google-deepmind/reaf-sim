@@ -309,6 +309,38 @@ class MujocoCameraDeviceTest(parameterized.TestCase):
           height=self._height,
           render_rate_hz=-10.0,
       )
+    # None renders only after resets.
+    mujoco_camera_device.MujocoCameraDevice(
+        camera_name="fixed",
+        width=self._width,
+        height=self._height,
+        render_rate_hz=None,
+    )
+
+  def test_none_render_rate_renders_only_after_reset(self):
+    entity = self._create_entity(
+        mujoco_camera_device.RenderMode.RGB, render_rate_hz=None
+    )
+    device = self._create_device(entity)
+
+    # The first measurement after a reset renders.
+    device.update_measurements()
+    first = device.get_measurements()["fixed_rgb"].clone()
+
+    # Later measurements return the same frame, even after the cart moved.
+    device.sim.data.qpos[0] = 1.0
+    device.sim.forward()
+    device.sim.step()
+    device.update_measurements()
+    self.assertTrue(torch.equal(device.get_measurements()["fixed_rgb"], first))
+
+    # After a reset, the next measurement renders the current state. `reset`
+    # restores qpos to the model default, so move the cart again first.
+    device.reset()
+    device.sim.data.qpos[0] = 1.0
+    device.sim.forward()
+    device.update_measurements()
+    self.assertFalse(torch.equal(device.get_measurements()["fixed_rgb"], first))
 
   def test_delay_ms_validation(self):
     with self.assertRaises(ValueError):

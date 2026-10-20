@@ -32,6 +32,7 @@ _SIMPLE_XML = """
     <light pos="0 0 3" diffuse="1 1 1"/>
     <geom type="plane" size="1 1 0.1" rgba="0.5 0.5 0.5 1"/>
     <body pos="0 0 0.1">
+      <joint name="slide" type="slide" axis="0 1 0"/>
       <geom type="sphere" size="0.1" rgba="1 0 0 1"/>
     </body>
     <camera name="test_cam" pos="0.5 0 0.3" xyaxes="0 1 0 -0.3 0 1"/>
@@ -92,12 +93,22 @@ class BatchedMujocoCameraDeviceTest(parameterized.TestCase):
         width=64,
         height=64,
     )
-    camera.initialize(sim)
-    camera.reset(sim)
+    # None: renders only the first measurement after each reset.
+    reset_only_camera = batched_camera_device.BatchedMujocoCameraDevice(
+        name="reset_only_camera",
+        camera_configs=[{"camera_name": "test_cam", "output_name": "test"}],
+        render_rate_hz=None,
+        width=64,
+        height=64,
+    )
+    for cam in (camera, reset_only_camera):
+      cam.initialize(sim)
+      cam.reset(sim)
 
     # Substep 0: renders and returns measurements
     m0 = camera.get_substep_measurements(sim)
     self.assertIn("test_rgb", m0)
+    r0 = reset_only_camera.get_substep_measurements(sim)
 
     # Calling again on substep 0 is idempotent: returns cached measurements
     m0_repeat = camera.get_substep_measurements(sim)
@@ -112,6 +123,16 @@ class BatchedMujocoCameraDeviceTest(parameterized.TestCase):
     sim.step()
     m2 = camera.get_substep_measurements(sim)
     self.assertIsNot(m0["test_rgb"], m2["test_rgb"])
+    # Without a render rate, measurements keep returning the first frame.
+    r2 = reset_only_camera.get_substep_measurements(sim)
+    self.assertIs(r0["test_rgb"], r2["test_rgb"])
+
+    # After the sphere moves and a reset, it renders the current state.
+    sim.data.qpos[0] = 0.3
+    sim.forward()
+    reset_only_camera.reset(sim)
+    r3 = reset_only_camera.get_substep_measurements(sim)
+    self.assertFalse(torch.equal(r0["test_rgb"], r3["test_rgb"]))
 
   def test_render_rate_hz_validation(self):
     with self.assertRaises(ValueError):
@@ -126,6 +147,12 @@ class BatchedMujocoCameraDeviceTest(parameterized.TestCase):
           camera_configs=[{"camera_name": "test_cam", "output_name": "test"}],
           render_rate_hz=-10.0,
       )
+    # None renders only after resets.
+    batched_camera_device.BatchedMujocoCameraDevice(
+        name="test_camera",
+        camera_configs=[{"camera_name": "test_cam", "output_name": "test"}],
+        render_rate_hz=None,
+    )
 
 
 if __name__ == "__main__":

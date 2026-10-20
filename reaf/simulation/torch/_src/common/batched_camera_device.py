@@ -47,7 +47,7 @@ class BatchedMujocoCameraDevice(device.Device):
       *,
       name: str = '',
       camera_configs: Sequence[dict],
-      render_rate_hz: float,
+      render_rate_hz: float | None,
       width: int = 128,
       height: int = 128,
       scene_option: mujoco.MjvOption | None = None,
@@ -60,13 +60,16 @@ class BatchedMujocoCameraDevice(device.Device):
         e.g. [{'camera_name': 'front', 'output_name': 'front'}, {'camera_name':
         'wrist', 'output_name': 'wrist'}]. Each entry renders the named camera
         and produces '{output_name}_rgb' in the measurements dict.
-      render_rate_hz: Camera rendering rate in Hz. Must be positive.
+      render_rate_hz: Camera rendering rate in Hz, or None to render only the
+        first measurement after each reset. Must be positive if set.
       width: Image width.
       height: Image height.
       scene_option: MuJoCo visualization options.
     """
-    if render_rate_hz <= 0:
-      raise ValueError(f'render_rate_hz must be positive, got {render_rate_hz}')
+    if render_rate_hz is not None and render_rate_hz <= 0:
+      raise ValueError(
+          f'render_rate_hz must be positive or None, got {render_rate_hz}'
+      )
 
     self._name = name
     self._camera_configs = list(camera_configs)
@@ -101,23 +104,24 @@ class BatchedMujocoCameraDevice(device.Device):
 
   def initialize(self, simulator: simulator_module.Simulator) -> None:
     """Initialize entity with compiled model - creates renderer."""
-    sim_dt = simulator.clock.sim_dt
-    desired_period = 1.0 / self._render_rate_hz
-    self._update_interval_in_substeps = max(1, round(desired_period / sim_dt))
-    actual_period = self._update_interval_in_substeps * sim_dt
-    if not math.isclose(
-        actual_period, desired_period, rel_tol=1e-6, abs_tol=1e-9
-    ):
-      _logger.warning(
-          'Desired render_rate_hz=%g (period %.6fs) is not an integer multiple'
-          ' of sim_dt=%.6fs; discretizing to %d substeps (actual render rate'
-          ' %.2f Hz).',
-          self._render_rate_hz,
-          desired_period,
-          sim_dt,
-          self._update_interval_in_substeps,
-          1.0 / actual_period,
-      )
+    if self._render_rate_hz is not None:
+      sim_dt = simulator.clock.sim_dt
+      desired_period = 1.0 / self._render_rate_hz
+      self._update_interval_in_substeps = max(1, round(desired_period / sim_dt))
+      actual_period = self._update_interval_in_substeps * sim_dt
+      if not math.isclose(
+          actual_period, desired_period, rel_tol=1e-6, abs_tol=1e-9
+      ):
+        _logger.warning(
+            'Desired render_rate_hz=%g (period %.6fs) is not an integer'
+            ' multiple of sim_dt=%.6fs; discretizing to %d substeps (actual'
+            ' render rate %.2f Hz).',
+            self._render_rate_hz,
+            desired_period,
+            sim_dt,
+            self._update_interval_in_substeps,
+            1.0 / actual_period,
+        )
     self._mj_model = simulator.mj_model
     self._xpu_device = getattr(simulator.data, 'device', 'cpu')
     if isinstance(simulator.model.obj, mjw.Model):
@@ -164,7 +168,8 @@ class BatchedMujocoCameraDevice(device.Device):
     data = simulator.data
     global_substep = simulator.clock.global_substep
     if not self._last_measurements or (
-        self._last_rendered_substep != global_substep
+        self._render_rate_hz is not None
+        and self._last_rendered_substep != global_substep
         and (global_substep % self._update_interval_in_substeps) == 0
     ):
       measurements = {}
