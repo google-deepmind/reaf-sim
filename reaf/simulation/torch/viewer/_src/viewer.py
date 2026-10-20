@@ -72,7 +72,7 @@ def launch(
     reward_plot_keys: Iterable[str] | None = None,
     loggers: Iterable[Any] | None = None,
     main_world_id: int = 0,
-    gfx: str = '',
+    gfx: str = 'web',
     http_port: int = 0,
     auto_reset: bool = True,
     initial_instruction: str | None = None,
