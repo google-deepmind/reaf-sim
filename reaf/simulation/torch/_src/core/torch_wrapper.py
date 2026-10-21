@@ -81,8 +81,7 @@ SET_CONST_0_OUTPUT_FIELDS: frozenset[str] = frozenset({
 })
 # Model fields that are the outputs of mjw.set_const.
 SET_CONST_OUTPUT_FIELDS: frozenset[str] = (
-    SET_CONST_FIXED_OUTPUT_FIELDS
-    | SET_CONST_0_OUTPUT_FIELDS
+    SET_CONST_FIXED_OUTPUT_FIELDS | SET_CONST_0_OUTPUT_FIELDS
 )
 
 

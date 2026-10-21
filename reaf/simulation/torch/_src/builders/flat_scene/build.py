@@ -44,8 +44,6 @@ _TIME_NAME = "time"
 def _instantiate_component(
     component_type: Any,
     runtime_params: Mapping[str, Any],
-    *,
-    override_injected: bool = False,
     **injected_kwargs: Any,
 ) -> Any:
   """Instantiates `component_type`, injecting framework kwargs only if accepted."""
@@ -56,8 +54,6 @@ def _instantiate_component(
   )
   for key, value in injected_kwargs.items():
     if value is None:
-      continue
-    if not override_injected and key in params:
       continue
     if accepts_var_keyword or key in sig.parameters:
       params[key] = value
@@ -200,7 +196,6 @@ def build_device_layer(
     dev = _instantiate_component(
         component.component_type,
         component.runtime_params,
-        override_injected=True,
         nworld=nworld,
         xpu_device=xpu_device,
         name=name,
@@ -346,7 +341,6 @@ def build_task_layer(
         c.runtime_params,
         nworld=nworld,
         xpu_device=xpu_device,
-        name="rewards",
     )
   elif env_config.task_layer.rewards:
     reward_provider = functional_reward.FunctionalRewardProvider(

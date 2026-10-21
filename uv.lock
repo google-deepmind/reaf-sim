@@ -887,8 +887,8 @@ sysid = [
 
 [[package]]
 name = "mujoco-warp"
-version = "3.15.0"
-source = { git = "https://github.com/google-deepmind/mujoco_warp?branch=deepmind#ff0dfb052291a560dc093fbd89a4d7fa6337cdc0" }
+version = "3.16.0"
+source = { git = "https://github.com/google-deepmind/mujoco_warp?branch=deepmind#2911aa5a37990e9360229689224ef0f9e5dc9671" }
 dependencies = [
     { name = "absl-py" },
     { name = "etils", extra = ["epath"] },

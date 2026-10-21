@@ -166,6 +166,57 @@ class BuildTest(absltest.TestCase):
     build.build_env(env_config)
     self.assertEqual(CountingResetter.startups, 1)
 
+  def test_sim_params_override_component_runtime_params(self):
+    class FakeDevice(clock_device.ClockDevice):
+
+      def __init__(self, name: str = "", nworld: int = 0, xpu_device: str = ""):
+        super().__init__(name=name)
+        self.nworld = nworld
+        self.xpu_device = xpu_device
+
+    class FakeCommandProcessor:
+
+      def __init__(
+          self,
+          name: str = "",
+          nworld: int = 0,
+          xpu_device: str = "",
+          simulation_timestep: float = 0.0,
+      ):
+        self.name = name
+        self.nworld = nworld
+        self.xpu_device = xpu_device
+        self.simulation_timestep = simulation_timestep
+
+    base_spec = mujoco.MjSpec()
+    env_config = config.Environment(
+        base_scene=base_spec,
+        sim=builders_config.Sim(
+            nworld=2, xpu_device="cpu", impl="cpp", simulation_timestep=0.005
+        ),
+        device_layer=config.DeviceLayer(
+            devices={"dev": config.Component(FakeDevice, nworld=4)},
+        ),
+        task_layer=config.TaskLayer(
+            command_processors={
+                "cp": config.Component(
+                    FakeCommandProcessor, nworld=4, simulation_timestep=0.01
+                ),
+            },
+        ),
+    )
+    env_config.sim.nworld = 1
+
+    device_layer = build.build_device_layer(env_config)
+    self.assertEqual(
+        device_layer.get_device("dev").nworld, 1  # pyrefly: ignore[missing-attribute]
+    )
+
+    task_layer = build.build_task_layer(env_config)
+    cp = task_layer.get_component_by_name("cp")
+    self.assertEqual(cp.nworld, 1)
+    self.assertEqual(cp.xpu_device, "cpu")
+
 
 class MakeDeploymentConfigTest(absltest.TestCase):
 

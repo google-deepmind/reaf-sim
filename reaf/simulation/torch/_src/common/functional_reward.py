@@ -42,7 +42,7 @@ class FunctionalRewardProvider(reward_provider.RewardProvider):
   def __init__(
       self,
       *,
-      name: str,
+      name: str = "rewards",
       terms: Mapping[str, "RewardTerm"],
       required_keys: list[str],
   ):
