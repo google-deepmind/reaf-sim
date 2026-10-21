@@ -72,9 +72,9 @@ For the complete, runnable script that loads the Cartpole model and generates th
 
 ## Documentation & Contributing
 
-- **Documentation:** See the [reaf-sim documentation](https://reaf-sim.readthedocs.io/en/latest/) for the user guide, architecture overview, and API reference.
-- **Contributing:** See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
-- **Changelog:** See [docs/changelog.rst](docs/changelog.rst).
+- **Documentation:** See the [reaf-sim documentation](https://reaf-sim.readthedocs.io/en/latest/) for the [user guide](https://reaf-sim.readthedocs.io/en/latest/user_guide/index.html) and [API reference](https://reaf-sim.readthedocs.io/en/latest/api.html).
+- **Contributing:** See the [contributing guide](https://reaf-sim.readthedocs.io/en/latest/contributing.html) (or [CONTRIBUTING.md](CONTRIBUTING.md)) for contribution guidelines.
+- **Changelog:** See the [changelog](https://reaf-sim.readthedocs.io/en/latest/changelog.html).
 
 ## Citation
 
