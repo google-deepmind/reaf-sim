@@ -21,6 +21,7 @@ from reaf.simulation.torch._src.builders.flat_scene import build
 from reaf.simulation.torch._src.builders.flat_scene import config
 from reaf.simulation.torch._src.common import clock_device
 from reaf.simulation.torch._src.core import environment
+import torch
 
 
 class BuildTest(absltest.TestCase):
@@ -217,6 +218,42 @@ class BuildTest(absltest.TestCase):
     self.assertEqual(cp.nworld, 1)
     self.assertEqual(cp.xpu_device, "cpu")
 
+  def test_build_task_layer_termination_checkers_and_no_timeout(self):
+    class FakeTerminationChecker:
+
+      def __init__(
+          self, threshold: float, nworld: int = 1, xpu_device: str = "cpu"
+      ):
+        self.threshold = threshold
+        self.nworld = nworld
+        self.xpu_device = xpu_device
+
+      def check_termination(self, features):
+        return (features["x"] > self.threshold).to(torch.int32)
+
+      def reset(self, env_mask=None):
+        pass
+
+    env_config = config.Environment(
+        base_scene=mujoco.MjSpec(),
+        episode_length_secs=None,
+        task_layer=config.TaskLayer(
+            termination_checkers={
+                "custom": config.Component(
+                    FakeTerminationChecker, threshold=0.5
+                )
+            },
+        ),
+    )
+    env_config.sim.xpu_device = "cpu"
+    task_layer = build.build_task_layer(env_config)
+    self.assertEqual(
+        task_layer.check_for_termination({"x": torch.zeros(1)}).item(), 0
+    )
+    self.assertEqual(
+        task_layer.check_for_termination({"x": torch.ones(1)}).item(), 1
+    )
+
 
 class MakeDeploymentConfigTest(absltest.TestCase):
 
@@ -232,6 +269,7 @@ class MakeDeploymentConfigTest(absltest.TestCase):
             rewards={"reach": config.Reward(lambda: None)},
             reward_provider=config.Component(object),
             terminations={"timeout": config.Term(lambda: None)},
+            termination_checkers={"checker": config.Component(object)},
             feature_producers={
                 "policy_producer": config.Component(object),
                 "privileged_producer": (
@@ -255,6 +293,7 @@ class MakeDeploymentConfigTest(absltest.TestCase):
     self.assertEmpty(deploy_config.task_layer.rewards)
     self.assertIsNone(deploy_config.task_layer.reward_provider)
     self.assertEmpty(deploy_config.task_layer.terminations)
+    self.assertEmpty(deploy_config.task_layer.termination_checkers)
     self.assertEqual(
         list(deploy_config.task_layer.feature_producers), ["policy_producer"]
     )

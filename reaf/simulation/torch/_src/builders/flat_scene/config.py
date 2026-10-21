@@ -305,7 +305,10 @@ class TaskLayer:
 
   rewards: dict[str, Reward] = field(default_factory=dict)
   reward_provider: Component | None = None  # defaults to weighted sum
+  # Stateless functional checks, grouped into a FunctionalTerminationChecker.
   terminations: dict[str, Term] = field(default_factory=dict)
+  # Stateful TerminationChecker components (e.g. with internal state / reset()).
+  termination_checkers: dict[str, Component] = field(default_factory=dict)
   command_processors: dict[str, Component] = field(default_factory=dict)
   feature_producers: dict[str, Component] = field(default_factory=dict)
   command_feature_producers: dict[str, Component] = field(default_factory=dict)
@@ -346,5 +349,5 @@ class Environment:
   # Simulation parameters.
   sim: Sim = field(default_factory=Sim)
 
-  episode_length_secs: float = 20.0
+  episode_length_secs: float | None = 20.0
   nan_termination: bool = False

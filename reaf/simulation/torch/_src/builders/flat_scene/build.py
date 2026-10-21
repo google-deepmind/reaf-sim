@@ -128,6 +128,7 @@ def make_deployment_config(
   task_layer.reward_provider = None
   task_layer.rewards = {}
   task_layer.terminations = {}
+  task_layer.termination_checkers = {}
 
   observation_adapter = {}
   for group in observation_groups:
@@ -269,6 +270,10 @@ def build_task_layer(
     term.params = _move_tensors_to_device(term.params, xpu_device)
   for term in termination_terms:
     term.params = _move_tensors_to_device(term.params, xpu_device)
+  for component in env_config.task_layer.termination_checkers.values():
+    component.runtime_params = _move_tensors_to_device(
+        component.runtime_params, xpu_device
+    )
   for component in env_config.task_layer.command_processors.values():
     component.runtime_params = _move_tensors_to_device(
         component.runtime_params, xpu_device
@@ -313,14 +318,15 @@ def build_task_layer(
       _wrap_method_for_float32(producer, "produce_features", cast_output=True)
     feature_producers.append(producer)
 
-  termination_checkers = [
-      timeout_termination_checker.TimeoutTerminationChecker(
-          xpu_device=xpu_device,
-          timeout=env_config.episode_length_secs,
-          time_feature_name=_TIME_NAME,
-      ),
-  ]
-
+  termination_checkers = []
+  if env_config.episode_length_secs is not None:
+    termination_checkers.append(
+        timeout_termination_checker.TimeoutTerminationChecker(
+            xpu_device=xpu_device,
+            timeout=env_config.episode_length_secs,
+            time_feature_name=_TIME_NAME,
+        )
+    )
   if termination_terms:
     checker = functional_termination.FunctionalTerminationChecker(
         name="task_terminations",
@@ -331,6 +337,16 @@ def build_task_layer(
     )
     checker.initialize(nworld=nworld, device=torch.device(xpu_device))
     termination_checkers.append(checker)  # pyrefly: ignore[bad-argument-type]
+  for name, c in env_config.task_layer.termination_checkers.items():
+    termination_checkers.append(
+        _instantiate_component(
+            c.component_type,
+            c.runtime_params,
+            nworld=nworld,
+            xpu_device=xpu_device,
+            name=name,
+        )
+    )
 
   # Rewards, can be shared between real and sim.
   reward_provider = None
