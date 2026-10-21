@@ -496,7 +496,7 @@ class Environment(core_environment.Environment):
   def device_layer(
       self,
   ) -> Any:
-    # TODO(b/513593452, btaba): Migrate downstream callers (e.g. coarse_reaf)
+    # TODO(b/513593452, btaba): Migrate downstream callers
     # to protocols.TorchDeviceLayer and re-tighten this type annotation.
     return self._device_layer
 

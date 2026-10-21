@@ -86,7 +86,6 @@ SET_CONST_OUTPUT_FIELDS: frozenset[str] = (
 
 
 SET_CONST_INPUT_LEVELS: dict[str, SetConstLevel] = {
-    # go/keep-sorted start
     "actuator_gear": SetConstLevel.STAGE_0,
     "body_inertia": SetConstLevel.STAGE_0,
     "body_ipos": SetConstLevel.STAGE_0,
@@ -107,7 +106,6 @@ SET_CONST_INPUT_LEVELS: dict[str, SetConstLevel] = {
     "tendon_armature": SetConstLevel.STAGE_0,
     "tendon_coef": SetConstLevel.STAGE_0,
     "wrap_prm": SetConstLevel.STAGE_0,
-    # go/keep-sorted end
 }
 
 

@@ -15,7 +15,7 @@
 """Reward provider which provides a zero reward.
 
 TODO(idanly): This pattern is cumbersome and repeating, consider removing
-ZeroRewardProvider in favor of the FunctionalRewardProvider (see cl/872631186).
+ZeroRewardProvider in favor of the FunctionalRewardProvider.
 """
 
 from collections.abc import Mapping
