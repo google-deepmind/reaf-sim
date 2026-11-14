@@ -182,6 +182,7 @@ def build_scene(env_config: config.Environment) -> mujoco.MjSpec:
   return mj_spec
 
 
+@torch.inference_mode(False)
 def build_device_layer(
     env_config: config.Environment,
 ) -> device_layer_module.DeviceLayer:
@@ -259,6 +260,7 @@ def build_device_layer(
   return device_layer
 
 
+@torch.inference_mode(False)
 def build_task_layer(
     env_config: config.Environment,
 ) -> task_layer_module.TaskLayer:
@@ -406,6 +408,7 @@ def build_task_layer(
   return task_layer
 
 
+@torch.inference_mode(False)
 def build_env(
     env_config: config.Environment,
 ) -> environment.Environment:

@@ -53,6 +53,7 @@ class Clock:
   episode_step: torch.Tensor = dataclasses.field(init=False)
   episode_substep: torch.Tensor = dataclasses.field(init=False)
 
+  @torch.inference_mode(False)
   def __post_init__(self) -> None:
     self.episode_step = torch.zeros(
         self.nworld, dtype=torch.int64, device=self.xpu_device

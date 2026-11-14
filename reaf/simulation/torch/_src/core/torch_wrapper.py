@@ -254,17 +254,18 @@ class TorchTensor(NoSetAttr):
       nworld: int | None = None,
       on_write: Callable[[], None] | None = None,
   ):
-    if isinstance(array, np.ndarray):
-      # Use torch.from_numpy directly for zero-copy.
-      tensor = torch.from_numpy(array)
-    else:
-      tensor = _wp_to_torch(array)
+    with torch.inference_mode(False):
+      if isinstance(array, np.ndarray):
+        # Use torch.from_numpy directly for zero-copy.
+        tensor = torch.from_numpy(array)
+      else:
+        tensor = _wp_to_torch(array)
 
-    if add_batch_dim:
-      tensor = tensor.unsqueeze(0)
+      if add_batch_dim:
+        tensor = tensor.unsqueeze(0)
 
-    if view_shape is not None:
-      tensor = tensor.view(view_shape)
+      if view_shape is not None:
+        tensor = tensor.view(view_shape)
 
     object.__setattr__(self, "_array", array)
     object.__setattr__(self, "_torch_tensor", tensor)

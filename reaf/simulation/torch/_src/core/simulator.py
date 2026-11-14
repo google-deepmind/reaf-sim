@@ -42,6 +42,7 @@ class Simulator(protocols.Simulator):
     - CUDA graph capture management for Warp backend.
   """
 
+  @torch.inference_mode(False)
   def __init__(
       self,
       *,
