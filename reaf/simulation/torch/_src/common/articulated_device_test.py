@@ -16,10 +16,11 @@
 """Tests for ArticulatedDevice."""
 
 from absl.testing import absltest
+from absl.testing import parameterized
 import mujoco
-import mujoco_warp as mjw
 import numpy as np
 from reaf.simulation.torch._src.common import articulated_device
+from reaf.simulation.torch._src.core import device_layer as device_layer_module
 from reaf.simulation.torch._src.core import simulator as simulator_module
 from reaf.simulation.torch._src.core import types
 import torch
@@ -71,7 +72,7 @@ def _setup(measurements=None):
   return dev, sim, spec
 
 
-class ArticulatedDeviceTest(absltest.TestCase):
+class ArticulatedDeviceTest(parameterized.TestCase):
 
   def test_measurements_spec(self):
     dev, _, _ = _setup(measurements=["joint_pos", "joint_vel"])
@@ -122,6 +123,78 @@ class ArticulatedDeviceTest(absltest.TestCase):
     dev.set_qvel(None, new_qvel)
     np.testing.assert_allclose(
         data.qvel[:, :2].cpu().numpy(), new_qvel.cpu().numpy()
+    )
+
+  @parameterized.parameters(types.Impl.CPP, types.Impl.WARP)
+  def test_unnamed_freejoint_and_joint_range_shapes(self, impl: types.Impl):
+    xml = """
+    <mujoco>
+      <compiler angle="radian"/>
+      <worldbody>
+        <body name="pelvis" pos="0 0 1">
+          <freejoint/>
+          <geom type="sphere" size="0.1"/>
+          <body name="thigh" pos="0 0 -0.2">
+            <joint name="knee" type="hinge" range="-2.0 0.1"/>
+            <geom type="sphere" size="0.08"/>
+          </body>
+        </body>
+      </worldbody>
+    </mujoco>
+    """
+    nworld = 1 if impl == types.Impl.CPP else 2
+    xpu_device = _DEVICE if impl == types.Impl.WARP else "cpu"
+    spec = mujoco.MjSpec.from_string(xml)
+    sim = simulator_module.Simulator(
+        mj_spec=spec, nworld=nworld, impl=impl, xpu_device=xpu_device
+    )
+    dev = articulated_device.ArticulatedDevice(
+        name="floating",
+        measurements=["joint_pos", "joint_vel", "joint_range"],
+        xpu_device=xpu_device,
+    )
+    dl = device_layer_module.DeviceLayer(
+        simulator=sim,
+        control_timestep=0.01,
+        devices=[dev],
+    )
+    meas_spec = dl.measurements_spec()
+    self.assertEqual(meas_spec["floating/joint_pos"].shape, (nworld, 8))
+    self.assertEqual(meas_spec["floating/joint_vel"].shape, (nworld, 7))
+    self.assertEqual(meas_spec["floating/joint_range"].shape, (nworld, 2, 2))
+
+    out = dl.begin_stepping()
+    self.assertEqual(out["floating/joint_pos"].shape, (nworld, 8))
+    self.assertEqual(out["floating/joint_vel"].shape, (nworld, 7))
+    self.assertEqual(out["floating/joint_range"].shape, (nworld, 2, 2))
+    np.testing.assert_allclose(
+        out["floating/joint_range"].cpu().numpy()[0],
+        [[0.0, 0.0], [-2.0, 0.1]],
+        rtol=1e-5,
+    )
+
+  @parameterized.parameters(types.Impl.CPP, types.Impl.WARP)
+  def test_single_joint_range_preserves_joint_dim(self, impl: types.Impl):
+    nworld = 1 if impl == types.Impl.CPP else 2
+    xpu_device = _DEVICE if impl == types.Impl.WARP else "cpu"
+    spec = mujoco.MjSpec.from_string(_DUMMY_XML)
+    sim = simulator_module.Simulator(
+        mj_spec=spec, nworld=nworld, impl=impl, xpu_device=xpu_device
+    )
+    dev = articulated_device.ArticulatedDevice(
+        name="single",
+        measurements=["joint_range"],
+        xpu_device=xpu_device,
+        joint_names=["robot/joint1"],
+    )
+    dev.initialize(sim)
+    self.assertEqual(
+        dev.substep_measurements_spec()["single/joint_range"].shape, (1, 2)
+    )
+    m = dev.get_measurements(sim)
+    self.assertEqual(m["single/joint_range"].shape, (nworld, 1, 2))
+    np.testing.assert_allclose(
+        m["single/joint_range"].cpu().numpy()[0], [[-1.57, 1.57]], rtol=1e-5
     )
 
 
