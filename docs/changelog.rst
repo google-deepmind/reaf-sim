@@ -6,6 +6,8 @@ Upcoming Version (not yet released)
 
 - Added ``backend="optix"`` option to :class:`~reaf.simulation.torch.CameraDevice` for NVIDIA RTX GPU accelerated
   ray-traced rendering via ``warp-optix``.
+- Added Python 3.15 support (``requires-python = ">=3.12,<3.16"``) and widened the PyTorch upper bound to
+  ``torch<2.16``.
 
 Version 1.0.1 (November 8, 2026)
 --------------------------------
