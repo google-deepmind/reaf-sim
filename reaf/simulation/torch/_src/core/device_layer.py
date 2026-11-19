@@ -363,6 +363,8 @@ class DeviceLayer:
     """Runs one physics substep and the per-substep hooks and processing."""
     self._propagate_commands(commands)
     self.sim.step()
+    if is_last_substep:
+      self.sim.forward()
     self._substep_measurements(is_last_substep=is_last_substep)
 
   @profile.trace(color=profile.Section.COMMANDS)

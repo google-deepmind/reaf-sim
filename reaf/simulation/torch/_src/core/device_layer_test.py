@@ -23,7 +23,9 @@ from dm_env import specs
 from gdm_robotics.interfaces import types as gdmr_types
 import mujoco
 import numpy as np
+from reaf.simulation.torch._src.common import actuator_device
 from reaf.simulation.torch._src.common import processors as processors_module
+from reaf.simulation.torch._src.common import site_device
 from reaf.simulation.torch._src.core import device as device_module
 from reaf.simulation.torch._src.core import device_layer
 from reaf.simulation.torch._src.core import simulator as simulator_module
@@ -1691,6 +1693,93 @@ class DeviceLayerTest(parameterized.TestCase):
     torch.testing.assert_close(
         meas["x"], torch.full((nworld, 1), 1.0, device=xpu_device)
     )
+
+  def test_step_refreshes_derived_quantities_on_final_substep(
+      self, impl, xpu_device
+  ):
+    if impl == types.Impl.WARP and not torch.cuda.is_available():
+      self.skipTest("WARP backend requires CUDA.")
+
+    xml = """
+    <mujoco>
+      <option timestep="0.002"/>
+      <worldbody>
+        <body name="link" pos="0 0 1">
+          <inertial pos="0.15 0 0" mass="1.0" diaginertia="0.05 0.05 0.05"/>
+          <joint name="hinge" type="hinge" axis="0 1 0" range="-3 3"/>
+          <site name="tip" pos="0.3 0 0"/>
+        </body>
+      </worldbody>
+      <actuator>
+        <general name="act" joint="hinge" dyntype="filterexact" dynprm="0.02"
+                 gainprm="50" biastype="affine" biasprm="0 -20 -2"/>
+      </actuator>
+      <sensor>
+        <framepos name="tip_pos" objtype="site" objname="tip"/>
+      </sensor>
+    </mujoco>
+    """
+    nworld = _nworld(impl)
+
+    class DerivedStateDevice(_Device):
+
+      def substep_measurements_spec(self) -> Mapping[str, specs.Array]:
+        return {
+            "sensordata": specs.Array((3,), np.float32),
+            "cvel": specs.Array((6,), np.float32),
+        }
+
+      def get_measurements(
+          self, simulator: simulator_module.Simulator
+      ) -> Mapping[str, torch.Tensor]:
+        return {
+            "sensordata": simulator.data.sensordata,
+            "cvel": simulator.data.cvel[:, 1],
+        }
+
+    sim = simulator_module.Simulator(
+        mj_spec=mujoco.MjSpec.from_string(xml),
+        impl=impl,
+        xpu_device=xpu_device,
+        nworld=nworld,
+    )
+    dl = device_layer.DeviceLayer(
+        simulator=sim,
+        control_timestep=0.008,  # 4 substeps
+        devices=[
+            site_device.SiteDevice(name="tip", site_name="tip"),
+            actuator_device.ActuatorDevice(
+                name="arm",
+                xpu_device=xpu_device,
+                targets=["act"],
+                measurements=["joint_pos", "actuator_force"],
+            ),
+            DerivedStateDevice("derived"),
+        ],
+    )
+    dl.reset()
+    dl.forward()
+    dl.begin_stepping()
+
+    ctrl = torch.full((nworld, 1), 1.0, dtype=torch.float32, device=xpu_device)
+    with mock.patch.object(sim, "forward", wraps=sim.forward) as forward_spy:
+      meas = dl.step({"arm/ctrl": ctrl})
+    self.assertEqual(forward_spy.call_count, 1)
+
+    stepped_xpos = meas["tip/xpos"].clone()
+    stepped_force = meas["arm/actuator_force"].clone()
+    stepped_sensor = meas["sensordata"].clone()
+    stepped_cvel = meas["cvel"].clone()
+
+    # Re-running forward() without stepping must not change any post-step
+    # measurement, confirming all derived fields already match integrated qpos.
+    dl.forward()
+    dl.update_measurements()
+    refreshed = dl.get_measurements()
+    torch.testing.assert_close(stepped_xpos, refreshed["tip/xpos"])
+    torch.testing.assert_close(stepped_force, refreshed["arm/actuator_force"])
+    torch.testing.assert_close(stepped_sensor, refreshed["sensordata"])
+    torch.testing.assert_close(stepped_cvel, refreshed["cvel"])
 
 
 @parameterized.named_parameters(("cpu", "cpu"), ("cuda", "cuda:0"))
