@@ -81,6 +81,7 @@ jobs:
           set -euo pipefail
           uv pip install --system twine
           TWINE_PASSWORD="$(gcloud auth print-access-token)"
+          echo "::add-mask::${TWINE_PASSWORD}"
           python3 -m twine upload \
             --repository-url "https://us-python.pkg.dev/oss-exit-gate-prod/reaf-sim--pypi/" \
             -u oauth2accesstoken \
