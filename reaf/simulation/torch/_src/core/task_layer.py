@@ -45,6 +45,7 @@ class _ResettableObject(Protocol):
 class TaskLayer:
   """Torch-compatible version of the REAF TaskLayer class."""
 
+  @torch.inference_mode(False)
   def __init__(  # pylint: disable=useless-parent-delegation
       self,
       *,
@@ -245,6 +246,7 @@ class TaskLayer:
     """Returns the discount spec exposed by the task layer."""
     return self._discount_provider.discount_spec()
 
+  @torch.inference_mode(False)
   def perform_reset(self, env_mask: torch.Tensor | None = None) -> None:
     """Reset the internal state of the task layer."""
     if env_mask is None:
@@ -252,6 +254,7 @@ class TaskLayer:
     for resettable_object in self._resettable_objects:
       resettable_object.reset(env_mask)
 
+  @torch.inference_mode(False)
   def check_for_termination(
       self, features: Mapping[str, torch.Tensor]
   ) -> torch.Tensor:
@@ -275,6 +278,7 @@ class TaskLayer:
     """Computes the reward given the features."""
     return self._reward_provider.compute_reward(features)
 
+  @torch.inference_mode(False)
   def update_metrics(self, features: Mapping[str, torch.Tensor]) -> None:
     """Evaluates per-step metrics and updates internal episodic accumulators.
 

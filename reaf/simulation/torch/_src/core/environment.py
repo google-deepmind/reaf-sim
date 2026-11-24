@@ -199,6 +199,8 @@ class Environment(core_environment.Environment):
   _should_finalize_episode: torch.Tensor  # pyrefly: ignore[bad-override]
   _last_timestep: dm_env.TimeStep
 
+  @torch.inference_mode(False)
+  @torch.no_grad()
   def __init__(
       self,
       *,
@@ -295,6 +297,12 @@ class Environment(core_environment.Environment):
     self._all_env_mask = torch.ones(
         self.nworld, dtype=torch.bool, device=self._xpu_device
     )
+    self._step_type_mid = torch.tensor(
+        dm_env.StepType.MID, dtype=torch.uint8, device=self._xpu_device
+    )
+    self._step_type_last = torch.tensor(
+        dm_env.StepType.LAST, dtype=torch.uint8, device=self._xpu_device
+    )
 
     # Measurements and features of the latest timestep, recorded to observers
     # and loggers once per returned timestep.
@@ -366,6 +374,7 @@ class Environment(core_environment.Environment):
         observation=observation,
     )
 
+  @torch.inference_mode(False)
   @torch.no_grad()
   def reset_with_options(
       self,
@@ -422,19 +431,21 @@ class Environment(core_environment.Environment):
     self._latest_features = features
     self._latest_measurements = measurements
 
-    # Update the observations for reset environments.
-    observations_w_reset = self._last_timestep.observation
-    if isinstance(observations_w_reset, dict):
-      for k in observations:
-        mask = env_mask.view(-1, *([1] * (observations[k].ndim - 1)))
-        observations_w_reset[k][:] = torch.where(
-            mask, observations[k], observations_w_reset[k]
-        )
+    # Update the observations for reset environments without mutating
+    # previously returned TimeStep tensors in place.
+    prev_observations = self._last_timestep.observation
+    if isinstance(prev_observations, dict):
+      observations_w_reset: Any = {
+          k: torch.where(
+              env_mask.view(-1, *([1] * (observations[k].ndim - 1))),
+              observations[k],
+              prev_observations[k],
+          )
+          for k in observations
+      }
     else:
       mask = env_mask.view(-1, *([1] * (observations.ndim - 1)))
-      observations_w_reset[:] = torch.where(
-          mask, observations, observations_w_reset
-      )
+      observations_w_reset = torch.where(mask, observations, prev_observations)
 
     # Update step_type, reward, and discount for reset environments.
     self._last_timestep = self._restart(
@@ -445,6 +456,7 @@ class Environment(core_environment.Environment):
     # Make sure any early reset after this one triggers `_finalize_episode`.
     self._should_finalize_episode |= env_mask
 
+  @torch.inference_mode(False)
   @torch.no_grad()
   @profile.trace(color=profile.Section.ENVIRONMENT)
   def step(
@@ -498,14 +510,14 @@ class Environment(core_environment.Environment):
     is_terminated = ts_ == termination_checker.TerminationResult.TERMINATE
     is_truncated = ts_ == termination_checker.TerminationResult.TRUNCATE
     is_terminated_or_truncated = torch.logical_or(is_terminated, is_truncated)
-    self._last_timestep.step_type[:] = torch.where(
+    step_type = torch.where(
         is_terminated_or_truncated,
-        dm_env.StepType.LAST,
-        dm_env.StepType.MID,
+        self._step_type_last,
+        self._step_type_mid,
     )
 
     self._last_timestep = dm_env.TimeStep(
-        step_type=self._last_timestep.step_type,
+        step_type=step_type,
         reward=reward,
         discount=torch.where(is_terminated, 0.0, discount),
         observation=observations,

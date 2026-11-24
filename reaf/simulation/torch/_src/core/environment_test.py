@@ -1464,5 +1464,103 @@ class EnvironmentSetConstTest(parameterized.TestCase):
     self.assertLen(forward_calls, 2)
 
 
+class _SingleTensorObservationAdapter(
+    observation_space_adapter.ObservationSpaceAdapter
+):
+  """Returns a single tensor observation instead of a dict."""
+
+  def __init__(self, nworld: int = 1):
+    self._nworld = nworld
+
+  def observations_from_features(
+      self, features: Mapping[str, torch.Tensor]
+  ) -> torch.Tensor:
+    return features["joint_pos"].float()
+
+  def observation_spec(self) -> gdmr_types.ObservationSpec:  # pyrefly: ignore[invalid-type-var]
+    return specs.Array(shape=(self._nworld, 1), dtype=np.float32)
+
+  def task_features_keys(self) -> set[str]:
+    return {"joint_pos"}
+
+
+class EnvironmentInferenceModeTest(parameterized.TestCase):
+  """Verifies Environment and Simulator transitions out of inference_mode."""
+
+  @parameterized.product(
+      impl=(types.Impl.WARP, types.Impl.CPP),
+      dict_obs=(True, False),
+      init_in_inference_mode=(False, True),
+  )
+  def test_rollout_in_inference_mode_then_reset_and_step_outside(
+      self,
+      impl: types.Impl,
+      dict_obs: bool,
+      init_in_inference_mode: bool,
+  ):
+    nworld = 2 if impl == types.Impl.WARP else 1
+    xpu_device = (
+        "cuda:0"
+        if impl == types.Impl.WARP and torch.cuda.is_available()
+        else "cpu"
+    )
+
+    def make_env():
+      obs_adapter = (
+          PendulumObservationAdapter(nworld=nworld)
+          if dict_obs
+          else _SingleTensorObservationAdapter(nworld=nworld)
+      )
+      timeouts = torch.full(
+          (nworld,), 0.04, dtype=torch.float32, device=xpu_device
+      )
+      return _build_pendulum_env(
+          nworld=nworld,
+          xpu_device=xpu_device,
+          timeouts=timeouts,
+          impl=impl,
+          observation_adapter=obs_adapter,
+      )
+
+    if init_in_inference_mode:
+      with torch.inference_mode():
+        env = make_env()
+    else:
+      env = make_env()
+
+    with torch.inference_mode():
+      action_inf = {
+          "motor_ctrl": torch.ones((nworld,), device=xpu_device) * 0.5
+      }
+      env.reset()
+      for _ in range(4):
+        ts_inf = env.step(action_inf)
+      env.device_layer.sim.data.time[:] = 0.0
+
+    held_step_type = ts_inf.step_type.clone()
+    held_obs_ref = (
+        ts_inf.observation["joint_pos"] if dict_obs else ts_inf.observation
+    )
+    held_obs_val = held_obs_ref.clone()
+
+    action_out = {"motor_ctrl": torch.ones((nworld,), device=xpu_device) * -0.5}
+    ts_step = env.step(action_out)
+    self.assertEqual(ts_step.step_type.dtype, torch.uint8)
+    torch.testing.assert_close(ts_inf.step_type, held_step_type)
+
+    mask = torch.zeros(nworld, dtype=torch.bool, device=xpu_device)
+    mask[0] = True
+    ts_partial = env.reset_with_options(
+        options=env.default_reset_options(), env_mask=mask
+    )
+    self.assertEqual(int(ts_partial.step_type[0].item()), dm_env.StepType.FIRST)
+
+    ts_full = env.reset()
+    self.assertTrue(
+        torch.all(ts_full.step_type == dm_env.StepType.FIRST).item()
+    )
+    torch.testing.assert_close(held_obs_ref, held_obs_val)
+
+
 if __name__ == "__main__":
   absltest.main()

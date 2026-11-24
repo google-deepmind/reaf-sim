@@ -57,6 +57,7 @@ class DeviceLayer:
     4. The substep loop.
   """
 
+  @torch.inference_mode(False)
   def __init__(
       self,
       *,
@@ -251,6 +252,7 @@ class DeviceLayer:
   def measurements_spec(self) -> Mapping[str, specs.Array]:
     return self._measurements_spec
 
+  @torch.inference_mode(False)
   def begin_stepping(
       self, env_mask: torch.Tensor | None = None
   ) -> Mapping[str, torch.Tensor]:
@@ -277,6 +279,7 @@ class DeviceLayer:
   def end_stepping(self, env_mask: torch.Tensor | None = None) -> None:
     pass
 
+  @torch.inference_mode(False)
   @profile.trace(color=profile.Section.PHYSICS)
   def step(
       self,
@@ -300,6 +303,7 @@ class DeviceLayer:
     profile.frame_mark()
     return self._output_buffers
 
+  @torch.inference_mode(False)
   @profile.trace(color=profile.Section.OBSERVATIONS)
   def update_measurements(self) -> None:
     """Reads all devices and processes their measurements, without hooks."""
@@ -419,9 +423,10 @@ class DeviceLayer:
               f"Measurement {key!r} is not in the spec of any device or"
               " processor."
           )
-        self._output_buffers[key] = val.clone(
-            memory_format=torch.contiguous_format
-        )
+        with torch.inference_mode(False):
+          self._output_buffers[key] = val.clone(
+              memory_format=torch.contiguous_format
+          )
         continue
       if env_mask is None or val.ndim < self._expected_ndim[key]:
         buf.copy_(val)
