@@ -12,18 +12,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import dataclasses
 from unittest import mock
 
 from absl.testing import absltest
 import dm_env
 from dm_env import specs
 import mujoco
+from mujoco.studio import launch_web
+from mujoco.studio import viewer_protocol
 import numpy as np
 from reaf.simulation.torch import simulator as simulator_module
 from reaf.simulation.torch import types
 from reaf.simulation.torch.viewer._src import sim_backend
 from reaf.simulation.torch.viewer._src import viewer
 import torch
+
+
+@dataclasses.dataclass(kw_only=True)
+class _LegacyViewerConfig:
+  """Viewer configuration from before Studio supported private mode."""
+
+  title: str
+  gfx: str
+  http_port: int
+  open_browser: bool
+  hot_reload: str
+
+
+@dataclasses.dataclass(kw_only=True)
+class _PrivateViewerConfig(_LegacyViewerConfig):
+  private: bool = False
 
 
 class ViewerTest(absltest.TestCase):
@@ -39,6 +58,11 @@ class ViewerTest(absltest.TestCase):
     self.sim = simulator_module.Simulator(
         mj_spec=self.spec, nworld=1, impl=types.Impl.CPP, xpu_device='cpu'
     )
+    self.env = mock.MagicMock()
+    self.env.action_spec.return_value = {
+        'action': specs.Array(shape=(4,), dtype=np.float32)
+    }
+    self.env.reward_spec.return_value = {}
 
   def _make_backend(
       self,
@@ -46,15 +70,59 @@ class ViewerTest(absltest.TestCase):
       xpu_device: str = 'cpu',
       world_id: int = 0,
   ) -> sim_backend.TorchSimBackend:
-    action_spec = {'action': specs.Array(shape=(4,), dtype=np.float32)}
-    policy = viewer._ZeroActionPolicy(action_spec, xpu_device=xpu_device)
+    policy = viewer._ZeroActionPolicy(
+        self.env.action_spec(), xpu_device=xpu_device
+    )
     return sim_backend.TorchSimBackend(
-        environment=mock.MagicMock(),
+        environment=self.env,
         policy=policy,
         simulator=sim or self.sim,
         xpu_device=xpu_device,
         world_id=world_id,
     )
+
+  def test_launch_with_legacy_config(self):
+    with (
+        mock.patch.object(viewer_protocol, 'ViewerConfig', _LegacyViewerConfig),
+        mock.patch.object(launch_web, 'run') as run,
+    ):
+      viewer.launch(
+          self.env, simulator=self.sim, http_port=8090, hot_reload='plugins'
+      )
+
+    run.assert_called_once()
+    self.assertEqual(
+        run.call_args.args[0],
+        _LegacyViewerConfig(
+            title='reaf-sim Environment Viewer',
+            gfx='web',
+            http_port=8090,
+            open_browser=True,
+            hot_reload='plugins',
+        ),
+    )
+
+  def test_launch_rejects_private_mode_with_legacy_config(self):
+    with (
+        mock.patch.object(viewer_protocol, 'ViewerConfig', _LegacyViewerConfig),
+        mock.patch.object(launch_web, 'run') as run,
+    ):
+      with self.assertRaisesRegex(RuntimeError, 'private=True requires'):
+        viewer.launch(self.env, simulator=self.sim, private=True)
+
+    run.assert_not_called()
+
+  def test_launch_enables_private_mode_with_supported_config(self):
+    with (
+        mock.patch.object(
+            viewer_protocol, 'ViewerConfig', _PrivateViewerConfig
+        ),
+        mock.patch.object(launch_web, 'run') as run,
+    ):
+      viewer.launch(self.env, simulator=self.sim, private=True)
+
+    run.assert_called_once()
+    self.assertTrue(run.call_args.args[0].private)
 
   def test_zero_action_policy(self):
     action_spec = {
