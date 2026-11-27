@@ -95,6 +95,7 @@ def launch(
     gfx: Graphics mode for the viewer (e.g. 'classic_headless', 'web').
     http_port: Web Viewer port (0 picks first free port >= 8080).
     private: Whether the Web Viewer accepts connections only from this machine.
+      Requires a version of MuJoCo Studio that supports private mode.
     auto_reset: If True (default), the environment automatically resets when an
       episode ends. If False, the viewer pauses instead, allowing inspection of
       the final state. The user can still manually reset with backspace.
@@ -160,10 +161,16 @@ def launch(
       title='reaf-sim Environment Viewer',
       gfx=gfx,
       http_port=http_port,
-      private=private,
       open_browser=True,
       hot_reload=hot_reload,
   )
+  if hasattr(config, 'private'):
+    config.private = private
+  elif private:
+    raise RuntimeError(
+        'private=True requires a version of MuJoCo Studio that supports'
+        ' private mode.'
+    )
 
   # Launch the viewer using the studio launch API. Errors from sim plugins,
   # the policy, or the viewer thread propagate to the caller.
