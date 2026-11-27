@@ -520,5 +520,83 @@ class RuntimeTest(parameterized.TestCase):
       )
 
 
+  @parameterized.parameters(types.Impl.CPP, types.Impl.WARP)
+  def test_muscle_activations_and_actuator_kinematics(self, impl: types.Impl):
+    """ActuatorDevice exposes act, actuator_length, actuator_velocity, and set_act."""
+    nworld = 1 if impl == types.Impl.CPP else 2
+    xml = """
+    <mujoco>
+      <worldbody>
+        <body>
+          <joint name="j0" type="hinge"/>
+          <geom size="0.1"/>
+        </body>
+        <body>
+          <joint name="j1" type="hinge" range="-1 1"/>
+          <geom size="0.1"/>
+        </body>
+        <body>
+          <joint name="j2" type="hinge" range="-1 1"/>
+          <geom size="0.1"/>
+        </body>
+      </worldbody>
+      <actuator>
+        <muscle name="unused_muscle" joint="j0" lengthrange="0 1"/>
+        <motor name="m1" joint="j1"/>
+        <muscle name="mus2" joint="j2"/>
+      </actuator>
+    </mujoco>
+    """
+    dev, sim = self._make_sim_with_actuator(
+        xml,
+        impl,
+        ["m1", "mus2"],
+        measurements=[
+            "act",
+            "actuator_length",
+            "actuator_velocity",
+            "actuator_force",
+        ],
+        nworld=nworld,
+    )
+    xpu_device = sim.data.act.device
+
+    specs_dict = dev.substep_measurements_spec()
+    self.assertEqual(specs_dict["dc/act"].shape, (1,))
+    self.assertEqual(specs_dict["dc/actuator_length"].shape, (2,))
+    self.assertEqual(specs_dict["dc/actuator_velocity"].shape, (2,))
+    self.assertEqual(specs_dict["dc/actuator_force"].shape, (2,))
+
+    sim.data.qpos[:, 1] = 0.25
+    sim.data.qpos[:, 2] = -0.35
+    sim.data.qvel[:, 1] = 0.4
+    sim.data.qvel[:, 2] = -0.6
+    dev.set_act(None, torch.full((nworld, 1), 0.75, device=xpu_device))
+    sim.forward()
+
+    m = dev.get_measurements(sim)
+    np.testing.assert_allclose(m["dc/act"].cpu().numpy(), [[0.75]] * nworld)
+    self.assertTrue((sim.data.act[:, 0] == 0.0).all())
+    np.testing.assert_allclose(
+        m["dc/actuator_length"].cpu().numpy(),
+        sim.data.actuator_length[:, [1, 2]].cpu().numpy(),
+        rtol=1e-5,
+    )
+    np.testing.assert_allclose(
+        m["dc/actuator_velocity"].cpu().numpy(),
+        sim.data.actuator_velocity[:, [1, 2]].cpu().numpy(),
+        rtol=1e-5,
+    )
+
+    if nworld > 1:
+      mask = torch.tensor([True, False], device=xpu_device)
+      dev.set_act(mask, torch.tensor([[0.2], [0.9]], device=xpu_device))
+      np.testing.assert_allclose(
+          dev.get_measurements(sim)["dc/act"].cpu().numpy(),
+          [[0.2], [0.75]],
+          rtol=1e-5,
+      )
+
+
 if __name__ == "__main__":
   absltest.main()

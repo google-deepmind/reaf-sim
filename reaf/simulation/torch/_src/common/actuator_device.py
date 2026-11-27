@@ -45,8 +45,9 @@ class ActuatorDevice(device.Device):
       xpu_device: Torch device.
       targets: List of actuator names in the compiled MjModel.
       measurements: Which measurements to expose. Options: "joint_pos",
-        "joint_vel", "joint_range", "actuator_force", "tendon_length",
-        "tendon_velocity", "ctrl". Default: [].
+        "joint_vel", "joint_range", "actuator_force", "actuator_length",
+        "actuator_velocity", "act", "tendon_length", "tendon_velocity", "ctrl",
+        "home_ctrl". Default: [].
       home_ctrl: Default home control values.
     """
     self._name = name
@@ -68,6 +69,7 @@ class ActuatorDevice(device.Device):
     self._joint_qpos_ids: torch.Tensor | None = None
     self._joint_qvel_ids: torch.Tensor | None = None
     self._ctrl_ids: torch.Tensor | None = None
+    self._act_ids: torch.Tensor | None = None
     self._out_ids: torch.Tensor | None = None
     self._tendon_ids: torch.Tensor | None = None
     self._joints: list[Any] = []
@@ -111,6 +113,7 @@ class ActuatorDevice(device.Device):
     joint_qpos_ids = []
     joint_qvel_ids = []
     ctrl_ids = []
+    act_ids = []
     out_ids = []
     tendon_ids = []
     act_setpoint_ids = []
@@ -142,6 +145,7 @@ class ActuatorDevice(device.Device):
       act_adr = int(mj_model.actuator_actadr[act.id])
       act_num = int(mj_model.actuator_actnum[act.id])
       if act_adr >= 0 and act_num > 0:
+        act_ids.extend(range(act_adr, act_adr + act_num))
         dyntype = mujoco.mjtDyn(mj_model.actuator_dyntype[act.id])
         setpoint_slot = -1
         if ctrl_num > 0:
@@ -209,6 +213,9 @@ class ActuatorDevice(device.Device):
           f" resolved control width ({len(ctrl_ids)},) for targets"
           f" {self._target_names}."
       )
+    self._act_ids = torch.tensor(
+        act_ids, dtype=torch.long, device=self._xpu_device
+    )
     self._out_ids = torch.tensor(
         out_ids, dtype=torch.long, device=self._xpu_device
     )
@@ -286,6 +293,7 @@ class ActuatorDevice(device.Device):
   def substep_measurements_spec(self) -> Mapping[str, specs.Array]:
     if (
         self._ctrl_ids is None
+        or self._act_ids is None
         or self._out_ids is None
         or self._joint_qpos_ids is None
         or self._joint_qvel_ids is None
@@ -300,8 +308,10 @@ class ActuatorDevice(device.Device):
       # Use resolved control/output widths for multi-input/output actuators.
       if m in ("ctrl", "home_ctrl"):
         shape = (self._ctrl_ids.numel(),)
-      elif m == "actuator_force":
+      elif m in ("actuator_force", "actuator_length", "actuator_velocity"):
         shape = (self._out_ids.numel(),)
+      elif m == "act":
+        shape = (self._act_ids.numel(),)
       elif m == "joint_pos":
         shape = (self._joint_qpos_ids.numel(),)
       elif m == "joint_vel":
@@ -340,6 +350,12 @@ class ActuatorDevice(device.Device):
         return data.qvel[:, self._joint_qvel_ids]
       elif m == "actuator_force":
         return data.actuator_force[:, self._out_ids]
+      elif m == "actuator_length":
+        return data.actuator_length[:, self._out_ids]
+      elif m == "actuator_velocity":
+        return data.actuator_velocity[:, self._out_ids]
+      elif m == "act":
+        return data.act[:, self._act_ids]
       elif m == "tendon_length":
         return data.ten_length[:, self._tendon_ids]
       elif m == "tendon_velocity":
@@ -407,3 +423,14 @@ class ActuatorDevice(device.Device):
         self._data.act[:, self._act_zero_ids] = torch.where(
             env_mask.unsqueeze(1), 0.0, curr_zero
         )
+
+  def set_act(self, env_mask: torch.Tensor | None, act: torch.Tensor) -> None:
+    """Set actuator activation state for specified environments."""
+    act = act.to(dtype=self._data.act.dtype)
+    if env_mask is None:
+      self._data.act[:, self._act_ids] = act
+    else:
+      curr = self._data.act[:, self._act_ids]
+      self._data.act[:, self._act_ids] = torch.where(
+          env_mask.unsqueeze(1), act, curr
+      )
