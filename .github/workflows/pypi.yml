@@ -8,6 +8,12 @@ on:
     tags: "v*"
   workflow_dispatch:
 
+permissions: {}
+
+concurrency:
+  group: pypi-publish-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -35,7 +41,76 @@ jobs:
               --title "${TAG_NAME}" \
               --notes "See the [changelog](https://reaf-sim.readthedocs.io/en/${TAG_NAME}/changelog.html)."
 
-      - name: Build and publish
+      - name: Build distributions and warm twine cache
         run: |
+          set -euo pipefail
           uv build
-          uv publish --check-url https://pypi.org/simple/
+          uvx twine --version
+      - name: Authenticate to Google Cloud (OSS Exit Gate)
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
+        with:
+          workload_identity_provider: 'projects/305452601764/locations/global/workloadIdentityPools/builders/providers/github'
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+      - name: Clean up failed staging attempt for this exact version (if any)
+        id: exit_gate_cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          describe_err="${RUNNER_TEMP}/exit-gate-describe.err"
+          trap 'rm -f "${describe_err}"' EXIT
+          PKG_VER=$(python3 -c 'import email, glob, tarfile, zipfile; files = sorted(glob.glob("dist/*.whl") + glob.glob("dist/*.tar.gz")); assert files, "No distributions found in dist/"; p = files[0]; meta = (zipfile.ZipFile(p).read([n for n in zipfile.ZipFile(p).namelist() if n.endswith(".dist-info/METADATA")][0]) if p.endswith(".whl") else tarfile.open(p).extractfile([m for m in tarfile.open(p).getmembers() if m.name.endswith("/PKG-INFO") or m.name == "PKG-INFO"][0]).read()); print(email.message_from_bytes(meta)["Version"].strip())')
+          echo "pkg_ver=${PKG_VER}" >> "${GITHUB_OUTPUT}"
+          set +e
+          gcloud artifacts versions describe "${PKG_VER}" \
+            --package="reaf-sim" \
+            --project="oss-exit-gate-prod" \
+            --location="us" \
+            --repository="reaf-sim--pypi" \
+            --format="value(name)" >/dev/null 2>"${describe_err}"
+          DESC_RC=$?
+          set -e
+          if [ "${DESC_RC}" -eq 0 ]; then
+            echo "Deleting incomplete staged version ${PKG_VER} before retry..."
+            gcloud artifacts versions delete "${PKG_VER}" \
+              --package="reaf-sim" \
+              --project="oss-exit-gate-prod" \
+              --location="us" \
+              --repository="reaf-sim--pypi" \
+              --quiet
+          elif grep -Eqi "NOT_FOUND|not.found|404" "${describe_err}"; then
+            echo "Version ${PKG_VER} not present in staging repository — proceeding with fresh upload"
+          else
+            cat "${describe_err}" >&2
+            exit "${DESC_RC}"
+          fi
+      - name: Stage distributions to OSS Exit Gate and upload manifest
+        shell: bash
+        env:
+          PKG_VER: ${{ steps.exit_gate_cleanup.outputs.pkg_ver }}
+          RUN_ID: ${{ github.run_id }}
+          RUN_ATTEMPT: ${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          manifest_path="${RUNNER_TEMP}/manifest.json"
+          trap 'rm -f "${manifest_path}"' EXIT
+          TWINE_USERNAME="oauth2accesstoken"
+          TWINE_PASSWORD="$(gcloud auth print-access-token)"
+          echo "::add-mask::${TWINE_PASSWORD}"
+          export TWINE_USERNAME TWINE_PASSWORD
+          uvx twine upload \
+            --repository-url "https://us-python.pkg.dev/oss-exit-gate-prod/reaf-sim--pypi/" \
+            dist/*
+          jq -n \
+            --arg name "reaf-sim" \
+            --arg ver "${PKG_VER}" \
+            '{
+              publish_all: false,
+              publishing_groups: [
+                {
+                  packages: [{ name: $name, version: $ver }]
+                }
+              ]
+            }' > "${manifest_path}"
+          gcloud storage cp --if-generation-match=0 "${manifest_path}" \
+            "gs://oss-exit-gate-prod-projects-bucket/reaf-sim/pypi/manifests/manifest-${PKG_VER}-${RUN_ID}-${RUN_ATTEMPT}.json"
