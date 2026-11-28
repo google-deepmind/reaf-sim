@@ -8,6 +8,8 @@ Upcoming Version (not yet released)
   :class:`~reaf.simulation.torch.flat_scene.Environment` to preserve PyTorch autograd through
   :class:`~reaf.simulation.torch.TaskLayer` and custom differentiable :class:`~reaf.simulation.torch.DeviceLayer`
   implementations (e.g., learned world models).
+- Fixed access to ``ximat``, ``geom_xmat``, and ``site_xmat`` on MuJoCo Warp
+  versions that store these rotation matrices directly.
 
 Version 1.1.0 (November 23, 2026)
 ---------------------------------

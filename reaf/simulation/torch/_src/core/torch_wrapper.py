@@ -509,6 +509,14 @@ _DERIVED_WARP_DATA_QUATS: dict[str, str] = {
 }
 
 
+def _warp_data_quat_source(name: str) -> str | None:
+  """Returns the quaternion field if this Warp version provides it."""
+  quat_name = _DERIVED_WARP_DATA_QUATS.get(name)
+  if quat_name in mjw.Data.__annotations__:
+    return quat_name
+  return None
+
+
 class DerivedQuatMatrixTensor(TorchTensor):
   """Derives 3x3 rotation matrices on read from a wrapped quaternion tensor."""
 
@@ -631,13 +639,13 @@ class TorchWrapper(Generic[T], NoSetAttr):
       return self._tensor_cache[name]
 
     _check_mjfield_support(self._obj_type, name)
-    if (
-        self._obj_type == MjObjType.MJW_DATA
-        and name in _DERIVED_WARP_DATA_QUATS
-    ):
-      derived_val = DerivedQuatMatrixTensor(
-          self.__getattr__(_DERIVED_WARP_DATA_QUATS[name])
-      )
+    quat_name = (
+        _warp_data_quat_source(name)
+        if self._obj_type == MjObjType.MJW_DATA
+        else None
+    )
+    if quat_name is not None:
+      derived_val = DerivedQuatMatrixTensor(self.__getattr__(quat_name))
       self._tensor_cache[name] = derived_val
       return derived_val
 
@@ -1315,11 +1323,8 @@ def _union_mj_fields() -> dict[str, dict[str, MjField]]:
       if mj_field.name in ("contact", "efc", "stat"):  # pyrefly: ignore[missing-attribute]
         continue
       name = mj_field.name
-      mjw_name = (
-          _DERIVED_WARP_DATA_QUATS[name]
-          if obj_name == "Data" and name in _DERIVED_WARP_DATA_QUATS
-          else name
-      )
+      quat_name = _warp_data_quat_source(name) if obj_name == "Data" else None
+      mjw_name = quat_name or name
       if mjw_name not in mjw_annotations:
         continue
 
